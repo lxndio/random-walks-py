@@ -1,5 +1,2 @@
-mod simple_rw;
-
-pub trait RandomWalkModel {
-    
-}
+pub mod biased_rw;
+pub mod simple_rw;
