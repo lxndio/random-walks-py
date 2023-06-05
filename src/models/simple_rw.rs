@@ -1,24 +1,24 @@
 use crate::dp::DynamicProgram;
 use num::BigUint;
 
-fn simple_rw(dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
-    let mut sum = dp.get(x, y, t);
+pub fn simple_rw(dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
+    let mut sum = dp.at(x, y, t);
     let (limit_neg, limit_pos) = dp.limits();
 
     if x > limit_neg {
-        sum += dp.get(x - 1, y, t);
+        sum += dp.at(x - 1, y, t);
     }
 
     if y > limit_neg {
-        sum += dp.get(x, y - 1, t);
+        sum += dp.at(x, y - 1, t);
     }
 
     if x < limit_pos {
-        sum += dp.get(x + 1, y, t);
+        sum += dp.at(x + 1, y, t);
     }
 
     if y < limit_pos {
-        sum += dp.get(x, y + 1, t);
+        sum += dp.at(x, y + 1, t);
     }
 
     sum
@@ -26,7 +26,7 @@ fn simple_rw(dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
 
 #[cfg(test)]
 mod tests {
-    use crate::dp::stats::Stats;
+    use crate::dp::problems::Problems;
     use crate::dp::DynamicProgram;
     use crate::models::simple_rw::simple_rw;
 

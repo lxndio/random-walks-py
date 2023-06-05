@@ -1,7 +1,7 @@
 use num::BigUint;
 use num::Zero;
 
-pub mod stats;
+pub mod problems;
 
 pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
@@ -27,7 +27,7 @@ impl DynamicProgram {
         (-(self.time_limit as isize), self.time_limit as isize)
     }
 
-    pub fn get(&self, x: isize, y: isize, t: usize) -> BigUint {
+    pub fn at(&self, x: isize, y: isize, t: usize) -> BigUint {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
 
