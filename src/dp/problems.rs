@@ -1,8 +1,6 @@
 use crate::dp::DynamicProgram;
-use num::bigint::{RandBigInt, RandomBits};
+use num::bigint::{RandBigInt};
 use num::{BigUint, One, Zero};
-use rand::Rng;
-use std::ops::Sub;
 
 pub trait Problems {
     fn count_paths(&mut self);
