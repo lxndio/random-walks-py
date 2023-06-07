@@ -16,7 +16,7 @@ impl Problems for DynamicProgram {
         for t in 1..=limit_pos as usize {
             for x in limit_neg..=limit_pos {
                 for y in limit_neg..=limit_pos {
-                    self.update(x, y, t, self.walk);
+                    self.update(x, y, t);
                 }
             }
         }
@@ -73,11 +73,11 @@ impl Problems for DynamicProgram {
 mod tests {
     use crate::dp::problems::Problems;
     use crate::dp::DynamicProgram;
-    use crate::models::simple_rw::simple_rw;
+    use crate::models::simple_rw::SimpleRw;
 
     #[test]
     fn testing() {
-        let mut dp = DynamicProgram::new(10, simple_rw);
+        let mut dp = DynamicProgram::new(10, SimpleRw);
         dp.count_paths();
 
         let path = dp.generate_path(2, 5, 10);

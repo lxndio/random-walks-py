@@ -6,20 +6,22 @@ pub mod problems;
 pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
     time_limit: usize,
-    walk: WalkFunction,
+    walk_model: Box<dyn WalkModel>,
 }
 
-type WalkFunction = fn(&DynamicProgram, isize, isize, usize) -> BigUint;
+pub trait WalkModel {
+    fn walk(&self, dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint;
+}
 
 impl DynamicProgram {
-    pub fn new(time_limit: usize, walk: WalkFunction) -> Self {
+    pub fn new(time_limit: usize, walk_model: impl WalkModel + 'static) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
                 time_limit + 1
             ],
             time_limit,
-            walk,
+            walk_model: Box::new(walk_model),
         }
     }
 
@@ -41,8 +43,8 @@ impl DynamicProgram {
         self.table[t][x][y] = val;
     }
 
-    pub fn update(&mut self, x: isize, y: isize, t: usize, walk: WalkFunction) {
-        self.set(x, y, t, walk(self, x, y, t - 1));
+    pub fn update(&mut self, x: isize, y: isize, t: usize) {
+        self.set(x, y, t, self.walk_model.walk(self, x, y, t - 1));
     }
 
     pub fn print(&self, t: usize) {

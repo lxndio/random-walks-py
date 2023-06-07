@@ -1,38 +1,42 @@
-use crate::dp::DynamicProgram;
+use crate::dp::{DynamicProgram, WalkModel};
 use num::BigUint;
 
-pub fn simple_rw(dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
-    let mut sum = dp.at(x, y, t);
-    let (limit_neg, limit_pos) = dp.limits();
+pub struct SimpleRw;
 
-    if x > limit_neg {
-        sum += dp.at(x - 1, y, t);
+impl WalkModel for SimpleRw {
+    fn walk(&self, dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
+        let mut sum = dp.at(x, y, t);
+        let (limit_neg, limit_pos) = dp.limits();
+
+        if x > limit_neg {
+            sum += dp.at(x - 1, y, t);
+        }
+
+        if y > limit_neg {
+            sum += dp.at(x, y - 1, t);
+        }
+
+        if x < limit_pos {
+            sum += dp.at(x + 1, y, t);
+        }
+
+        if y < limit_pos {
+            sum += dp.at(x, y + 1, t);
+        }
+
+        sum
     }
-
-    if y > limit_neg {
-        sum += dp.at(x, y - 1, t);
-    }
-
-    if x < limit_pos {
-        sum += dp.at(x + 1, y, t);
-    }
-
-    if y < limit_pos {
-        sum += dp.at(x, y + 1, t);
-    }
-
-    sum
 }
 
 #[cfg(test)]
 mod tests {
     use crate::dp::problems::Problems;
     use crate::dp::DynamicProgram;
-    use crate::models::simple_rw::simple_rw;
+    use crate::models::simple_rw::SimpleRw;
 
     #[test]
     fn testing() {
-        let mut dp = DynamicProgram::new(10, simple_rw);
+        let mut dp = DynamicProgram::new(10, SimpleRw);
         dp.count_paths();
 
         dp.print(3);
