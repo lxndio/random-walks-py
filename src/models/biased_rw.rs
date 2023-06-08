@@ -2,6 +2,7 @@ use crate::dp::{DynamicProgram, WalkModel};
 use num::BigUint;
 use rand::Rng;
 
+#[derive(PartialEq)]
 pub enum Direction {
     North,
     East,
@@ -23,7 +24,7 @@ impl WalkModel for BiasedRw {
         let dir_prob = rng.gen_range(0.0..=1.0);
 
         // TODO Does this make sense to check if the bias should be applied?
-        if dir_prob >= self.probability {
+        if dir_prob <= self.probability {
             match self.direction {
                 Direction::North if y > limit_neg => sum += dp.at(x, y - 1, t),
                 Direction::East if x < limit_pos => sum += dp.at(x + 1, y, t),
@@ -33,21 +34,19 @@ impl WalkModel for BiasedRw {
                 _ => (),
             }
         } else {
-            // TODO Should all directions be updated here or only the non-bias direction?
-            // Doing all directions for now.
-            if x > limit_neg {
+            if self.direction != Direction::West && x > limit_neg {
                 sum += dp.at(x - 1, y, t);
             }
 
-            if y > limit_neg {
+            if self.direction != Direction::North && y > limit_neg {
                 sum += dp.at(x, y - 1, t);
             }
 
-            if x < limit_pos {
+            if self.direction != Direction::East && x < limit_pos {
                 sum += dp.at(x + 1, y, t);
             }
 
-            if y < limit_pos {
+            if self.direction != Direction::South && y < limit_pos {
                 sum += dp.at(x, y + 1, t);
             }
         }
@@ -69,7 +68,7 @@ mod tests {
         let mut dp = DynamicProgram::new(10, rw);
         dp.count_paths();
 
-        dp.print(1);
+        dp.print(5);
 
         assert_eq!(1, 1);
     }
