@@ -1,5 +1,5 @@
 use crate::dp::DynamicProgram;
-use num::bigint::{RandBigInt};
+use num::bigint::RandBigInt;
 use num::{BigUint, One, Zero};
 
 pub trait Problem {
@@ -8,6 +8,7 @@ pub trait Problem {
 }
 
 impl Problem for DynamicProgram {
+    /// For each cell, count the number of paths leading to it in each time step.
     fn count_paths(&mut self) {
         let (limit_neg, limit_pos) = self.limits();
 

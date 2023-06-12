@@ -1,6 +1,9 @@
 use num::BigUint;
 use num::Zero;
+use crate::dp::pregenerated::PregeneratedSolution;
+use crate::models::simple_rw::SimpleRw;
 
+pub mod pregenerated;
 pub mod problems;
 
 pub struct DynamicProgram {
@@ -62,6 +65,17 @@ impl DynamicProgram {
             }
 
             println!();
+        }
+    }
+}
+
+impl From<PregeneratedSolution> for DynamicProgram {
+    fn from(solution: PregeneratedSolution) -> Self {
+        Self {
+            table: solution.table(),
+            time_limit: solution.time_limit(),
+            // TODO Probably make walk_model optional in the future, for now use this
+            walk_model: Box::new(SimpleRw),
         }
     }
 }
