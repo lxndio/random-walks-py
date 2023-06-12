@@ -30,7 +30,7 @@ impl WalkModel for SimpleRw {
 
 #[cfg(test)]
 mod tests {
-    use crate::dp::problems::Problems;
+    use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
     use crate::models::simple_rw::SimpleRw;
 

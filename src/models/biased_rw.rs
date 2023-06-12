@@ -57,7 +57,7 @@ impl WalkModel for BiasedRw {
 
 #[cfg(test)]
 mod tests {
-    use crate::dp::problems::Problems;
+    use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
     use crate::models::biased_rw::{BiasedRw, Direction};
 

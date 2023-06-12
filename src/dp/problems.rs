@@ -2,12 +2,12 @@ use crate::dp::DynamicProgram;
 use num::bigint::{RandBigInt};
 use num::{BigUint, One, Zero};
 
-pub trait Problems {
+pub trait Problem {
     fn count_paths(&mut self);
     fn generate_path(&self, x: isize, y: isize, t: usize) -> Vec<(isize, isize)>;
 }
 
-impl Problems for DynamicProgram {
+impl Problem for DynamicProgram {
     fn count_paths(&mut self) {
         let (limit_neg, limit_pos) = self.limits();
 
@@ -71,7 +71,7 @@ impl Problems for DynamicProgram {
 
 #[cfg(test)]
 mod tests {
-    use crate::dp::problems::Problems;
+    use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
     use crate::models::simple_rw::SimpleRw;
 
