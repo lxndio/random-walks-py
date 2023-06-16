@@ -1,7 +1,10 @@
+//! A collection of different problems that can be solved using the dynamic program.
+
 use crate::dp::DynamicProgram;
 use num::bigint::RandBigInt;
 use num::{BigUint, One, Zero};
 
+/// A problem that can be solved using the dynamic program.
 pub trait Problem {
     fn count_paths(&mut self);
     fn generate_path(&self, x: isize, y: isize, t: usize) -> Vec<(isize, isize)>;
@@ -49,6 +52,7 @@ impl Problem for DynamicProgram {
             let mut rchoice = rng.gen_biguint_range(&BigUint::zero(), &total);
             let mut choice = 0;
 
+            // TODO Can crash, probably if there is no path?
             while rchoice >= prev_counts[choice] {
                 rchoice -= &prev_counts[choice];
                 choice += 1;

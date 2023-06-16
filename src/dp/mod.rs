@@ -1,7 +1,20 @@
+//! The dynamic program used to compute everything.
+//!
+//! # Examples
+//!
+//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleRw`] random walk model.
+//! Then use it to count the number of paths leading to each cell.
+//!
+//! ```
+//! let mut dp = DynamicProgram::new(10, SimpleRw);
+//! dp.count_paths();
+//! ```
+
 use num::BigUint;
 use num::Zero;
 use crate::dp::pregenerated::PregeneratedSolution;
 use crate::models::simple_rw::SimpleRw;
+use crate::models::WalkModel;
 
 pub mod pregenerated;
 pub mod problems;
@@ -10,10 +23,6 @@ pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
     time_limit: usize,
     walk_model: Box<dyn WalkModel>,
-}
-
-pub trait WalkModel {
-    fn walk(&self, dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint;
 }
 
 impl DynamicProgram {
@@ -25,6 +34,17 @@ impl DynamicProgram {
             ],
             time_limit,
             walk_model: Box::new(walk_model),
+        }
+    }
+
+    pub fn with_boxed(time_limit: usize, walk_model: Box<dyn WalkModel>) -> Self {
+        Self {
+            table: vec![
+                vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
+                time_limit + 1
+            ],
+            time_limit,
+            walk_model,
         }
     }
 

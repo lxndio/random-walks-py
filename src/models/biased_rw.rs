@@ -1,14 +1,6 @@
-use crate::dp::{DynamicProgram, WalkModel};
 use num::BigUint;
-use rand::Rng;
-
-#[derive(PartialEq)]
-pub enum Direction {
-    North,
-    East,
-    South,
-    West,
-}
+use crate::dp::DynamicProgram;
+use crate::models::{Direction, WalkModel};
 
 pub struct BiasedRw {
     pub direction: Direction,
@@ -20,38 +12,40 @@ impl WalkModel for BiasedRw {
         let mut sum = dp.at(x, y, t);
         let (limit_neg, limit_pos) = dp.limits();
 
-        let mut rng = rand::thread_rng();
-        let dir_prob = rng.gen_range(0.0..=1.0);
+        match self.direction {
+            Direction::North if y > limit_neg => sum += dp.at(x, y - 1, t),
+            Direction::East if x < limit_pos => sum += dp.at(x + 1, y, t),
+            Direction::South if y < limit_pos => sum += dp.at(x, y + 1, t),
+            Direction::West if x > limit_neg => sum += dp.at(x + 1, y, t),
+            // TODO What should happen if a direction was chosen but it is beyond the border?
+            _ => (),
+        }
 
-        // TODO Does this make sense to check if the bias should be applied?
-        if dir_prob <= self.probability {
-            match self.direction {
-                Direction::North if y > limit_neg => sum += dp.at(x, y - 1, t),
-                Direction::East if x < limit_pos => sum += dp.at(x + 1, y, t),
-                Direction::South if y < limit_pos => sum += dp.at(x, y + 1, t),
-                Direction::West if x > limit_neg => sum += dp.at(x + 1, y, t),
-                // TODO What should happen if a direction was chosen but it is beyond the border?
-                _ => (),
-            }
-        } else {
-            if self.direction != Direction::West && x > limit_neg {
-                sum += dp.at(x - 1, y, t);
-            }
+        if x > limit_neg {
+            sum += dp.at(x - 1, y, t);
+        }
 
-            if self.direction != Direction::North && y > limit_neg {
-                sum += dp.at(x, y - 1, t);
-            }
+        if y > limit_neg {
+            sum += dp.at(x, y - 1, t);
+        }
 
-            if self.direction != Direction::East && x < limit_pos {
-                sum += dp.at(x + 1, y, t);
-            }
+        if x < limit_pos {
+            sum += dp.at(x + 1, y, t);
+        }
 
-            if self.direction != Direction::South && y < limit_pos {
-                sum += dp.at(x, y + 1, t);
-            }
+        if y < limit_pos {
+            sum += dp.at(x, y + 1, t);
         }
 
         sum
+    }
+
+    fn name(&self, short: bool) -> String {
+        if short {
+            String::from("brw")
+        } else {
+            String::from("Biased RW")
+        }
     }
 }
 
@@ -59,7 +53,8 @@ impl WalkModel for BiasedRw {
 mod tests {
     use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
-    use crate::models::biased_rw::{BiasedRw, Direction};
+    use crate::models::biased_rw::BiasedRw;
+    use crate::models::Direction;
 
     #[test]
     fn testing() {

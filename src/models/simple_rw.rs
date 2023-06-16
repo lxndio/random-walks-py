@@ -1,5 +1,6 @@
-use crate::dp::{DynamicProgram, WalkModel};
+use crate::dp::DynamicProgram;
 use num::BigUint;
+use crate::models::WalkModel;
 
 pub struct SimpleRw;
 
@@ -25,6 +26,14 @@ impl WalkModel for SimpleRw {
         }
 
         sum
+    }
+
+    fn name(&self, short: bool) -> String {
+        if short {
+            String::from("srw")
+        } else {
+            String::from("Simple RW")
+        }
     }
 }
 
