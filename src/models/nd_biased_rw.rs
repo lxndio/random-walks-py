@@ -1,7 +1,7 @@
 use crate::dp::DynamicProgram;
+use crate::models::{Direction, WalkModel};
 use num::BigUint;
 use rand::Rng;
-use crate::models::{Direction, WalkModel};
 
 /// A non-deterministic approach to computing a DP table for biased random walks.
 pub struct NdBiasedRw {
@@ -61,12 +61,15 @@ impl WalkModel for NdBiasedRw {
 mod tests {
     use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
-    use crate::models::Direction;
     use crate::models::nd_biased_rw::NdBiasedRw;
+    use crate::models::Direction;
 
     #[test]
     fn testing() {
-        let rw = NdBiasedRw { direction: Direction::North, probability: 0.5 };
+        let rw = NdBiasedRw {
+            direction: Direction::North,
+            probability: 0.5,
+        };
 
         let mut dp = DynamicProgram::new(10, rw);
         dp.count_paths();

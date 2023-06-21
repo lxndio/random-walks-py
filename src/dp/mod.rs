@@ -10,11 +10,12 @@
 //! dp.count_paths();
 //! ```
 
-use num::BigUint;
-use num::Zero;
 use crate::dp::pregenerated::PregeneratedSolution;
 use crate::models::simple_rw::SimpleRw;
 use crate::models::WalkModel;
+use crate::solvers::Solver;
+use num::BigUint;
+use num::Zero;
 
 pub mod pregenerated;
 pub mod problems;

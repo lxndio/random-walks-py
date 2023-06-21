@@ -3,6 +3,8 @@
 use crate::dp::DynamicProgram;
 use num::bigint::RandBigInt;
 use num::{BigUint, One, Zero};
+use rand::distributions::WeightedIndex;
+use rand::prelude::*;
 use rand::Rng;
 
 /// A problem that can be solved using the dynamic program.
@@ -43,7 +45,7 @@ impl Problem for DynamicProgram {
             path.push((x, y));
 
             let total = self.at(x, y, t);
-            let prev_counts = vec![
+            let prev_counts = [
                 self.at(x, y, t - 1),
                 self.at(x - 1, y, t - 1),
                 self.at(x, y - 1, t - 1),
@@ -51,23 +53,32 @@ impl Problem for DynamicProgram {
                 self.at(x, y + 1, t - 1),
             ];
 
-            let mut rchoice = rng.gen_biguint_range(&BigUint::zero(), &total);
-            let mut choice = 0;
+            let dist = WeightedIndex::new(&prev_counts).unwrap();
+            let direction = dist.sample(&mut rng);
 
-            // TODO Can crash, probably if there is no path?
-            // Can no path occur normally or only if the random walk model is not correct?
-            while rchoice >= prev_counts[choice] {
-                rchoice -= &prev_counts[choice];
-                choice += 1;
-            }
-
-            match choice {
+            match direction {
                 1 => x -= 1,
                 2 => y -= 1,
                 3 => x += 1,
                 4 => y += 1,
                 _ => (),
             }
+
+            // let mut rchoice = rng.gen_biguint_range(&BigUint::zero(), &total);
+            // let mut choice = 0;
+            //
+            // while rchoice >= prev_counts[choice] {
+            //     rchoice -= &prev_counts[choice];
+            //     choice += 1;
+            // }
+            //
+            // match choice {
+            //     1 => x -= 1,
+            //     2 => y -= 1,
+            //     3 => x += 1,
+            //     4 => y += 1,
+            //     _ => (),
+            // }
         }
 
         path.reverse();
@@ -77,7 +88,12 @@ impl Problem for DynamicProgram {
     }
 
     /// Experiment
-    fn generate_path_bias(&self, to_x: isize, to_y: isize, time_steps: usize) -> Vec<(isize, isize)> {
+    fn generate_path_bias(
+        &self,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Vec<(isize, isize)> {
         let mut path = Vec::new();
         let (mut x, mut y) = (to_x, to_y);
         let mut rng = rand::thread_rng();
@@ -91,7 +107,7 @@ impl Problem for DynamicProgram {
             path.push((x, y));
 
             let total = self.at(x, y, t);
-            let prev_counts = vec![
+            let prev_counts = [
                 self.at(x, y, t - 1),
                 self.at(x - 1, y, t - 1),
                 self.at(x, y - 1, t - 1),

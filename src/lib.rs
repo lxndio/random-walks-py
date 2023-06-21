@@ -2,3 +2,4 @@
 
 pub mod dp;
 pub mod models;
+pub mod solvers;

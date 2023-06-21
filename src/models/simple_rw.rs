@@ -1,6 +1,6 @@
 use crate::dp::DynamicProgram;
-use num::BigUint;
 use crate::models::WalkModel;
+use num::BigUint;
 
 pub struct SimpleRw;
 

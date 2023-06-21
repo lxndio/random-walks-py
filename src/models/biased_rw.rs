@@ -1,6 +1,6 @@
-use num::BigUint;
 use crate::dp::DynamicProgram;
 use crate::models::{Direction, WalkModel};
+use num::BigUint;
 
 pub struct BiasedRw {
     pub direction: Direction,
@@ -13,10 +13,18 @@ impl WalkModel for BiasedRw {
         let (limit_neg, limit_pos) = dp.limits();
 
         match self.direction {
-            Direction::North if y > limit_neg => sum += dp.at(x, y + 1, t) * (self.probability * 10f32) as usize,
-            Direction::East if x < limit_pos => sum += dp.at(x + 1, y, t) * (self.probability * 10f32) as usize,
-            Direction::South if y < limit_pos => sum += dp.at(x, y - 1, t) * (self.probability * 10f32) as usize,
-            Direction::West if x > limit_neg => sum += dp.at(x - 1, y, t) * (self.probability * 10f32) as usize,
+            Direction::North if y > limit_neg => {
+                sum += dp.at(x, y + 1, t) * (self.probability * 10f32) as usize
+            }
+            Direction::East if x < limit_pos => {
+                sum += dp.at(x + 1, y, t) * (self.probability * 10f32) as usize
+            }
+            Direction::South if y < limit_pos => {
+                sum += dp.at(x, y - 1, t) * (self.probability * 10f32) as usize
+            }
+            Direction::West if x > limit_neg => {
+                sum += dp.at(x - 1, y, t) * (self.probability * 10f32) as usize
+            }
             // TODO What should happen if a direction was chosen but it is beyond the border?
             _ => (),
         }
@@ -26,15 +34,15 @@ impl WalkModel for BiasedRw {
         }
 
         if y > limit_neg {
-            sum += dp.at(x, y - 1, t) * ((1f32 - self.probability) * 10f32) as usize;;
+            sum += dp.at(x, y - 1, t) * ((1f32 - self.probability) * 10f32) as usize;
         }
 
         if x < limit_pos {
-            sum += dp.at(x + 1, y, t) * ((1f32 - self.probability) * 10f32) as usize;;
+            sum += dp.at(x + 1, y, t) * ((1f32 - self.probability) * 10f32) as usize;
         }
 
         if y < limit_pos {
-            sum += dp.at(x, y + 1, t) * ((1f32 - self.probability) * 10f32) as usize;;
+            sum += dp.at(x, y + 1, t) * ((1f32 - self.probability) * 10f32) as usize;
         }
 
         sum
@@ -58,7 +66,10 @@ mod tests {
 
     #[test]
     fn testing() {
-        let rw = BiasedRw { direction: Direction::North, probability: 0.5 };
+        let rw = BiasedRw {
+            direction: Direction::North,
+            probability: 0.5,
+        };
 
         let mut dp = DynamicProgram::new(10, rw);
         dp.count_paths();
