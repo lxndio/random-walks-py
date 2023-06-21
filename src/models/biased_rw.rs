@@ -13,28 +13,28 @@ impl WalkModel for BiasedRw {
         let (limit_neg, limit_pos) = dp.limits();
 
         match self.direction {
-            Direction::North if y > limit_neg => sum += dp.at(x, y - 1, t),
-            Direction::East if x < limit_pos => sum += dp.at(x + 1, y, t),
-            Direction::South if y < limit_pos => sum += dp.at(x, y + 1, t),
-            Direction::West if x > limit_neg => sum += dp.at(x + 1, y, t),
+            Direction::North if y > limit_neg => sum += dp.at(x, y + 1, t) * (self.probability * 10f32) as usize,
+            Direction::East if x < limit_pos => sum += dp.at(x + 1, y, t) * (self.probability * 10f32) as usize,
+            Direction::South if y < limit_pos => sum += dp.at(x, y - 1, t) * (self.probability * 10f32) as usize,
+            Direction::West if x > limit_neg => sum += dp.at(x - 1, y, t) * (self.probability * 10f32) as usize,
             // TODO What should happen if a direction was chosen but it is beyond the border?
             _ => (),
         }
 
         if x > limit_neg {
-            sum += dp.at(x - 1, y, t);
+            sum += dp.at(x - 1, y, t) * ((1f32 - self.probability) * 10f32) as usize;
         }
 
         if y > limit_neg {
-            sum += dp.at(x, y - 1, t);
+            sum += dp.at(x, y - 1, t) * ((1f32 - self.probability) * 10f32) as usize;;
         }
 
         if x < limit_pos {
-            sum += dp.at(x + 1, y, t);
+            sum += dp.at(x + 1, y, t) * ((1f32 - self.probability) * 10f32) as usize;;
         }
 
         if y < limit_pos {
-            sum += dp.at(x, y + 1, t);
+            sum += dp.at(x, y + 1, t) * ((1f32 - self.probability) * 10f32) as usize;;
         }
 
         sum

@@ -81,6 +81,10 @@ impl Problem for PregeneratedSolution {
     fn generate_path(&self, x: isize, y: isize, t: usize) -> Vec<(isize, isize)> {
         todo!()
     }
+
+    fn generate_path_bias(&self, x: isize, y: isize, t: usize) -> Vec<(isize, isize)> {
+        todo!()
+    }
 }
 
 #[cfg(test)]
