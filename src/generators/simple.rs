@@ -1,11 +1,11 @@
 use crate::dp::DynamicProgram;
-use crate::models::WalkModel;
+use crate::generators::Generator;
 use num::BigUint;
 
-pub struct SimpleRw;
+pub struct SimpleGenerator;
 
-impl WalkModel for SimpleRw {
-    fn walk(&self, dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
+impl Generator for SimpleGenerator {
+    fn step(&self, dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
         let mut sum = dp.at(x, y, t);
         let (limit_neg, limit_pos) = dp.limits();
 
@@ -41,11 +41,11 @@ impl WalkModel for SimpleRw {
 mod tests {
     use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
-    use crate::models::simple_rw::SimpleRw;
+    use crate::generators::simple::SimpleGenerator;
 
     #[test]
     fn testing() {
-        let mut dp = DynamicProgram::new(10, SimpleRw);
+        let mut dp = DynamicProgram::new(10, SimpleGenerator);
         dp.count_paths();
 
         dp.print(3);

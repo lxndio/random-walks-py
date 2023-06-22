@@ -154,11 +154,11 @@ impl Problem for DynamicProgram {
 mod tests {
     use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
-    use crate::models::simple_rw::SimpleRw;
+    use crate::generators::simple::SimpleGenerator;
 
     #[test]
     fn testing() {
-        let mut dp = DynamicProgram::new(10, SimpleRw);
+        let mut dp = DynamicProgram::new(10, SimpleGenerator);
         dp.count_paths();
 
         let path = dp.generate_path(2, 5, 10);

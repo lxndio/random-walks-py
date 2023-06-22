@@ -5,6 +5,16 @@ pub mod simple_rw;
 use crate::dp::DynamicProgram;
 use num::One;
 
+/// A direction for use in different random walk generators.
+#[derive(PartialEq)]
+pub enum Direction {
+    North,
+    East,
+    South,
+    West,
+    Stay,
+}
+
 pub trait Solver {
     fn generate_path(
         &self,

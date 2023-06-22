@@ -1,5 +1,5 @@
 use crate::dp::DynamicProgram;
-use crate::models::Direction;
+use crate::solvers::Direction;
 use crate::solvers::Solver;
 use num::{BigUint, One, Zero};
 use rand::distributions::WeightedIndex;
@@ -47,6 +47,7 @@ impl Solver for BiasedRwSolver {
                 match self.direction {
                     Direction::North if !prev_counts[2].is_zero() => {
                         // y += 1;
+                        // TODO which direction is right?
                         y -= 1;
                         continue;
                     }

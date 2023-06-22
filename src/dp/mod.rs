@@ -2,7 +2,7 @@
 //!
 //! # Examples
 //!
-//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleRw`] random walk model.
+//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleGenerator`] random walk model.
 //! Then use it to count the number of paths leading to each cell.
 //!
 //! ```
@@ -11,9 +11,8 @@
 //! ```
 
 use crate::dp::pregenerated::PregeneratedSolution;
-use crate::models::simple_rw::SimpleRw;
-use crate::models::WalkModel;
-use crate::solvers::Solver;
+use crate::generators::simple::SimpleGenerator;
+use crate::generators::Generator;
 use num::BigUint;
 use num::Zero;
 
@@ -23,29 +22,29 @@ pub mod problems;
 pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
     time_limit: usize,
-    walk_model: Box<dyn WalkModel>,
+    generator: Box<dyn Generator>,
 }
 
 impl DynamicProgram {
-    pub fn new(time_limit: usize, walk_model: impl WalkModel + 'static) -> Self {
+    pub fn new(time_limit: usize, generator: impl Generator + 'static) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
                 time_limit + 1
             ],
             time_limit,
-            walk_model: Box::new(walk_model),
+            generator: Box::new(generator),
         }
     }
 
-    pub fn with_boxed(time_limit: usize, walk_model: Box<dyn WalkModel>) -> Self {
+    pub fn with_boxed(time_limit: usize, generator: Box<dyn Generator>) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
                 time_limit + 1
             ],
             time_limit,
-            walk_model,
+            generator,
         }
     }
 
@@ -68,7 +67,7 @@ impl DynamicProgram {
     }
 
     pub fn update(&mut self, x: isize, y: isize, t: usize) {
-        self.set(x, y, t, self.walk_model.walk(self, x, y, t - 1));
+        self.set(x, y, t, self.generator.step(self, x, y, t - 1));
     }
 
     pub fn print(&self, t: usize) {
@@ -96,7 +95,7 @@ impl From<PregeneratedSolution> for DynamicProgram {
             table: solution.table(),
             time_limit: solution.time_limit(),
             // TODO Probably make walk_model optional in the future, for now use this
-            walk_model: Box::new(SimpleRw),
+            generator: Box::new(SimpleGenerator),
         }
     }
 }
