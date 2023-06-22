@@ -1,11 +1,10 @@
 use crate::dp::DynamicProgram;
 use crate::solvers::Direction;
 use crate::solvers::Solver;
-use num::{BigUint, One, Zero};
+use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::Rng;
-use std::thread::current;
 
 pub struct CorrelatedRwSolver {
     pub persistence: f32,
@@ -31,7 +30,6 @@ impl Solver for CorrelatedRwSolver {
         for t in (1..=time_steps).rev() {
             path.push((x, y));
 
-            let total = dp.at(x, y, t);
             let prev_counts = [
                 dp.at(x, y, t - 1),
                 dp.at(x - 1, y, t - 1),

@@ -1,5 +1,4 @@
 use crate::dp::problems::Problem;
-use crate::dp::DynamicProgram;
 use num::BigUint;
 use num::Zero;
 use std::fs::File;
@@ -78,11 +77,11 @@ impl Problem for PregeneratedSolution {
         }
     }
 
-    fn generate_path(&self, x: isize, y: isize, t: usize) -> Vec<(isize, isize)> {
+    fn generate_path(&self, _x: isize, _y: isize, _t: usize) -> Vec<(isize, isize)> {
         todo!()
     }
 
-    fn generate_path_bias(&self, x: isize, y: isize, t: usize) -> Vec<(isize, isize)> {
+    fn generate_path_bias(&self, _x: isize, _y: isize, _t: usize) -> Vec<(isize, isize)> {
         todo!()
     }
 }

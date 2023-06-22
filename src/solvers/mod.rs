@@ -3,7 +3,6 @@ pub mod correlated_rw;
 pub mod simple_rw;
 
 use crate::dp::DynamicProgram;
-use num::One;
 
 /// A direction for use in different random walk generators.
 #[derive(PartialEq)]
