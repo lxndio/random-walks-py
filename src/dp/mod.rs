@@ -10,14 +10,10 @@
 //! dp.count_paths();
 //! ```
 
-use crate::dp::pregenerated::PregeneratedSolution;
 use crate::generators::simple::SimpleGenerator;
 use crate::generators::Generator;
 use num::BigUint;
-use num::Zero;
-
-pub mod pregenerated;
-pub mod problems;
+use num::{One, Zero};
 
 pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
@@ -68,6 +64,20 @@ impl DynamicProgram {
 
     pub fn update(&mut self, x: isize, y: isize, t: usize) {
         self.set(x, y, t, self.generator.step(self, x, y, t - 1));
+    }
+
+    pub fn count_paths(&mut self) {
+        let (limit_neg, limit_pos) = self.limits();
+
+        self.set(0, 0, 0, One::one());
+
+        for t in 1..=limit_pos as usize {
+            for x in limit_neg..=limit_pos {
+                for y in limit_neg..=limit_pos {
+                    self.update(x, y, t);
+                }
+            }
+        }
     }
 
     pub fn print(&self, t: usize) {
