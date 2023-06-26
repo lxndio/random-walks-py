@@ -2,18 +2,21 @@
 //!
 //! # Examples
 //!
-//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleGenerator`] random walk model.
+//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleGenerator`] generator.
 //! Then use it to count the number of paths leading to each cell.
 //!
 //! ```
-//! let mut dp = DynamicProgram::new(10, SimpleRw);
+//! let mut dp = DynamicProgram::new(10, SimpleGenerator);
 //! dp.count_paths();
 //! ```
 
-use crate::generators::simple::SimpleGenerator;
-use crate::generators::Generator;
+pub mod problems;
+
 use num::BigUint;
 use num::{One, Zero};
+
+use crate::generators::simple::SimpleGenerator;
+use crate::generators::Generator;
 
 pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
@@ -44,6 +47,10 @@ impl DynamicProgram {
         }
     }
 
+    pub fn from_files(path: String) -> Self {
+
+    }
+
     pub fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
     }
@@ -66,20 +73,6 @@ impl DynamicProgram {
         self.set(x, y, t, self.generator.step(self, x, y, t - 1));
     }
 
-    pub fn count_paths(&mut self) {
-        let (limit_neg, limit_pos) = self.limits();
-
-        self.set(0, 0, 0, One::one());
-
-        for t in 1..=limit_pos as usize {
-            for x in limit_neg..=limit_pos {
-                for y in limit_neg..=limit_pos {
-                    self.update(x, y, t);
-                }
-            }
-        }
-    }
-
     pub fn print(&self, t: usize) {
         // Get number of digits of largest number
         let max = self.table[t].iter().flatten().max().unwrap();
@@ -99,13 +92,3 @@ impl DynamicProgram {
     }
 }
 
-impl From<PregeneratedSolution> for DynamicProgram {
-    fn from(solution: PregeneratedSolution) -> Self {
-        Self {
-            table: solution.table(),
-            time_limit: solution.time_limit(),
-            // TODO Probably make walk_model optional in the future, for now use this
-            generator: Box::new(SimpleGenerator),
-        }
-    }
-}

@@ -1,4 +1,4 @@
-//! A collection of different random walk generators for use in the dynamic program.
+//! A collection of different generators for use in the dynamic program.
 
 use crate::dp::DynamicProgram;
 use num::BigUint;

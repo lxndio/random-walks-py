@@ -39,7 +39,6 @@ impl Generator for SimpleGenerator {
 
 #[cfg(test)]
 mod tests {
-    use crate::dp::problems::Problem;
     use crate::dp::DynamicProgram;
     use crate::generators::simple::SimpleGenerator;
 
