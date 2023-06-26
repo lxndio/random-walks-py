@@ -1,10 +1,10 @@
 use crate::dp::DynamicProgram;
-use crate::generators::Generator;
+use crate::steppers::Stepper;
 use num::BigUint;
 
-pub struct SimpleGenerator;
+pub struct SimpleStepper;
 
-impl Generator for SimpleGenerator {
+impl Stepper for SimpleStepper {
     fn step(&self, dp: &DynamicProgram, x: isize, y: isize, t: usize) -> BigUint {
         let mut sum = dp.at(x, y, t);
         let (limit_neg, limit_pos) = dp.limits();
@@ -30,9 +30,9 @@ impl Generator for SimpleGenerator {
 
     fn name(&self, short: bool) -> String {
         if short {
-            String::from("srw")
+            String::from("sstep")
         } else {
-            String::from("Simple RW")
+            String::from("Simple Stepper")
         }
     }
 }
@@ -40,11 +40,11 @@ impl Generator for SimpleGenerator {
 #[cfg(test)]
 mod tests {
     use crate::dp::DynamicProgram;
-    use crate::generators::simple::SimpleGenerator;
+    use crate::steppers::simple::SimpleStepper;
 
     #[test]
     fn testing() {
-        let mut dp = DynamicProgram::new(10, SimpleGenerator);
+        let mut dp = DynamicProgram::new(10, SimpleStepper);
         dp.count_paths();
 
         dp.print(3);

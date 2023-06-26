@@ -1,12 +1,12 @@
 use crate::dp::DynamicProgram;
-use crate::solvers::Solver;
+use crate::walk_generators::WalkGenerator;
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
-pub struct SimpleRwSolver;
+pub struct SimpleRwGenerator;
 
-impl Solver for SimpleRwSolver {
+impl WalkGenerator for SimpleRwGenerator {
     fn generate_path(
         &self,
         dp: &DynamicProgram,

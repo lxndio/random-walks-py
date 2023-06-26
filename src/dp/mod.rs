@@ -2,7 +2,7 @@
 //!
 //! # Examples
 //!
-//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleGenerator`] generator.
+//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleStepper`] generator.
 //! Then use it to count the number of paths leading to each cell.
 //!
 //! ```
@@ -15,17 +15,17 @@ pub mod problems;
 use num::BigUint;
 use num::{One, Zero};
 
-use crate::generators::simple::SimpleGenerator;
-use crate::generators::Generator;
+use crate::steppers::simple::SimpleStepper;
+use crate::steppers::Stepper;
 
 pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
     time_limit: usize,
-    generator: Box<dyn Generator>,
+    generator: Box<dyn Stepper>,
 }
 
 impl DynamicProgram {
-    pub fn new(time_limit: usize, generator: impl Generator + 'static) -> Self {
+    pub fn new(time_limit: usize, generator: impl Stepper + 'static) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
@@ -36,7 +36,7 @@ impl DynamicProgram {
         }
     }
 
-    pub fn with_boxed(time_limit: usize, generator: Box<dyn Generator>) -> Self {
+    pub fn with_boxed(time_limit: usize, generator: Box<dyn Stepper>) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
@@ -47,9 +47,9 @@ impl DynamicProgram {
         }
     }
 
-    pub fn from_files(path: String) -> Self {
-
-    }
+    // pub fn from_files(path: String) -> Self {
+    //
+    // }
 
     pub fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
@@ -91,4 +91,3 @@ impl DynamicProgram {
         }
     }
 }
-

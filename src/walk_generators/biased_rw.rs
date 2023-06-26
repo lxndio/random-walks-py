@@ -1,16 +1,17 @@
 use crate::dp::DynamicProgram;
-use crate::solvers::Direction;
-use crate::solvers::Solver;
+use crate::walk_generators::Direction;
+use crate::walk_generators::WalkGenerator;
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::Rng;
 
-pub struct CorrelatedRwSolver {
-    pub persistence: f32,
+pub struct BiasedRwGenerator {
+    pub direction: Direction,
+    pub probability: f32,
 }
 
-impl Solver for CorrelatedRwSolver {
+impl WalkGenerator for BiasedRwGenerator {
     fn generate_path(
         &self,
         dp: &DynamicProgram,
@@ -30,6 +31,7 @@ impl Solver for CorrelatedRwSolver {
         for t in (1..=time_steps).rev() {
             path.push((x, y));
 
+            let _total = dp.at(x, y, t);
             let prev_counts = [
                 dp.at(x, y, t - 1),
                 dp.at(x - 1, y, t - 1),
@@ -38,29 +40,30 @@ impl Solver for CorrelatedRwSolver {
                 dp.at(x, y + 1, t - 1),
             ];
 
-            // Check if persistence is used for this step
+            // Check if bias is used for this step
             let dir_prob = rng.gen_range(0.0..=1.0);
 
-            if dir_prob <= self.persistence {
-                match last_step_direction(&path) {
-                    Some(Direction::North) if !prev_counts[2].is_zero() => {
+            if dir_prob <= self.probability {
+                match self.direction {
+                    Direction::North if !prev_counts[2].is_zero() => {
                         // y += 1;
                         // TODO which direction is right?
                         y -= 1;
                         continue;
                     }
-                    Some(Direction::East) if !prev_counts[1].is_zero() => {
+                    Direction::East if !prev_counts[1].is_zero() => {
                         x -= 1;
                         continue;
                     }
-                    Some(Direction::South) if !prev_counts[2].is_zero() => {
+                    Direction::South if !prev_counts[2].is_zero() => {
                         y -= 1;
                         continue;
                     }
-                    Some(Direction::West) if !prev_counts[3].is_zero() => {
+                    Direction::West if !prev_counts[3].is_zero() => {
                         x += 1;
                         continue;
                     }
+                    Direction::Stay if !prev_counts[0].is_zero() => continue,
                     _ => (),
                 }
             }
@@ -85,32 +88,9 @@ impl Solver for CorrelatedRwSolver {
 
     fn name(&self, short: bool) -> String {
         if short {
-            String::from("crw")
+            String::from("brw")
         } else {
-            String::from("Correlated RW")
+            String::from("Biased RW")
         }
-    }
-}
-
-fn last_step_direction(path: &Vec<(isize, isize)>) -> Option<Direction> {
-    if path.len() < 2 {
-        return None;
-    }
-
-    let current_pos = path[path.len() - 1];
-    let last_pos = path[path.len() - 2];
-
-    if current_pos.1 - 1 == last_pos.1 && current_pos.0 == last_pos.0 {
-        Some(Direction::North)
-    } else if current_pos.0 + 1 == last_pos.0 && current_pos.1 == last_pos.1 {
-        Some(Direction::East)
-    } else if current_pos.1 + 1 == last_pos.1 && current_pos.0 == last_pos.0 {
-        Some(Direction::South)
-    } else if current_pos.0 - 1 == last_pos.0 && current_pos.1 == last_pos.1 {
-        Some(Direction::West)
-    } else if current_pos.0 == last_pos.0 && current_pos.1 == last_pos.1 {
-        Some(Direction::Stay)
-    } else {
-        panic!("Can't determine last step's direction.")
     }
 }

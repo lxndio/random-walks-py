@@ -1,5 +1,5 @@
-//! A library for efficient movement interpolation using different random walk generators.
+//! A library for efficient movement interpolation using different random walk steppers.
 
 pub mod dp;
-pub mod generators;
-pub mod solvers;
+pub mod steppers;
+pub mod walk_generators;

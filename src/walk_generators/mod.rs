@@ -4,7 +4,7 @@ pub mod simple_rw;
 
 use crate::dp::DynamicProgram;
 
-/// A direction for use in different random walk generators.
+/// A direction for use in different random walk steppers.
 #[derive(PartialEq)]
 pub enum Direction {
     North,
@@ -14,7 +14,7 @@ pub enum Direction {
     Stay,
 }
 
-pub trait Solver {
+pub trait WalkGenerator {
     fn generate_path(
         &self,
         dp: &DynamicProgram,
