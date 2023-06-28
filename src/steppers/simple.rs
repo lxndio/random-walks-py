@@ -39,6 +39,7 @@ impl Stepper for SimpleStepper {
 
 #[cfg(test)]
 mod tests {
+    use crate::dp::problems::Problems;
     use crate::dp::DynamicProgram;
     use crate::steppers::simple::SimpleStepper;
 

@@ -11,9 +11,11 @@
 //! ```
 
 pub mod problems;
+pub mod store;
 
 use num::BigUint;
 use num::{One, Zero};
+use std::fmt::Debug;
 
 use crate::steppers::simple::SimpleStepper;
 use crate::steppers::Stepper;
@@ -21,35 +23,31 @@ use crate::steppers::Stepper;
 pub struct DynamicProgram {
     table: Vec<Vec<Vec<BigUint>>>,
     time_limit: usize,
-    generator: Box<dyn Stepper>,
+    stepper: Box<dyn Stepper>,
 }
 
 impl DynamicProgram {
-    pub fn new(time_limit: usize, generator: impl Stepper + 'static) -> Self {
+    pub fn new(time_limit: usize, stepper: impl Stepper + 'static) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
                 time_limit + 1
             ],
             time_limit,
-            generator: Box::new(generator),
+            stepper: Box::new(stepper),
         }
     }
 
-    pub fn with_boxed(time_limit: usize, generator: Box<dyn Stepper>) -> Self {
+    pub fn with_boxed(time_limit: usize, stepper: Box<dyn Stepper>) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
                 time_limit + 1
             ],
             time_limit,
-            generator,
+            stepper,
         }
     }
-
-    // pub fn from_files(path: String) -> Self {
-    //
-    // }
 
     pub fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
@@ -70,7 +68,7 @@ impl DynamicProgram {
     }
 
     pub fn update(&mut self, x: isize, y: isize, t: usize) {
-        self.set(x, y, t, self.generator.step(self, x, y, t - 1));
+        self.set(x, y, t, self.stepper.step(self, x, y, t - 1));
     }
 
     pub fn print(&self, t: usize) {
@@ -91,3 +89,19 @@ impl DynamicProgram {
         }
     }
 }
+
+impl Debug for DynamicProgram {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DynamicProgram")
+            .field("time_limit", &self.time_limit)
+            .finish()
+    }
+}
+
+impl PartialEq for DynamicProgram {
+    fn eq(&self, other: &Self) -> bool {
+        self.time_limit == other.time_limit && self.table == other.table
+    }
+}
+
+impl Eq for DynamicProgram {}
