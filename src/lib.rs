@@ -3,3 +3,4 @@
 pub mod dp;
 pub mod steppers;
 pub mod walk_generators;
+pub mod walk_analyzer;

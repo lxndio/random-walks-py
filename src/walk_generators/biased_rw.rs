@@ -1,5 +1,5 @@
 use crate::dp::DynamicProgram;
-use crate::walk_generators::Direction;
+use crate::walk_generators::{Direction, Walk};
 use crate::walk_generators::WalkGenerator;
 use num::Zero;
 use rand::distributions::WeightedIndex;
@@ -18,7 +18,7 @@ impl WalkGenerator for BiasedRwGenerator {
         to_x: isize,
         to_y: isize,
         time_steps: usize,
-    ) -> Vec<(isize, isize)> {
+    ) -> Walk {
         let mut path = Vec::new();
         let (mut x, mut y) = (to_x, to_y);
         let mut rng = rand::thread_rng();

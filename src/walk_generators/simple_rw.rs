@@ -1,5 +1,5 @@
 use crate::dp::DynamicProgram;
-use crate::walk_generators::WalkGenerator;
+use crate::walk_generators::{Walk, WalkGenerator};
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
@@ -13,7 +13,7 @@ impl WalkGenerator for SimpleRwGenerator {
         to_x: isize,
         to_y: isize,
         time_steps: usize,
-    ) -> Vec<(isize, isize)> {
+    ) -> Walk {
         let mut path = Vec::new();
         let (mut x, mut y) = (to_x, to_y);
         let mut rng = rand::thread_rng();
