@@ -1,6 +1,6 @@
 use crate::dp::DynamicProgram;
-use crate::walk_generators::{Direction, Walk};
 use crate::walk_generators::WalkGenerator;
+use crate::walk_generators::{Direction, Walk};
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;

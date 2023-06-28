@@ -2,9 +2,9 @@ pub mod biased_rw;
 pub mod correlated_rw;
 pub mod simple_rw;
 
-use std::ops::Index;
-use strum::EnumIter;
 use crate::dp::DynamicProgram;
+use std::ops::{Index, IndexMut};
+use strum::EnumIter;
 
 pub type Walk = Vec<(isize, isize)>;
 
@@ -21,7 +21,7 @@ pub trait WalkGenerator {
 }
 
 /// A direction for use in different random walk steppers.
-#[derive(PartialEq, Copy, Clone, EnumIter)]
+#[derive(Debug, PartialEq, Copy, Clone, EnumIter)]
 pub enum Direction {
     North,
     East,
@@ -70,11 +70,23 @@ impl<T> Index<Direction> for Directions<T> {
 
     fn index(&self, direction: Direction) -> &Self::Output {
         match direction {
-            Direction::North => &self[0],
-            Direction::East => &self[1],
-            Direction::South => &self[2],
-            Direction::West => &self[3],
-            Direction::Stay => &self[4],
+            Direction::North => &self.north,
+            Direction::East => &self.east,
+            Direction::South => &self.south,
+            Direction::West => &self.west,
+            Direction::Stay => &self.stay,
+        }
+    }
+}
+
+impl<T> IndexMut<Direction> for Directions<T> {
+    fn index_mut(&mut self, direction: Direction) -> &mut Self::Output {
+        match direction {
+            Direction::North => &mut self.north,
+            Direction::East => &mut self.east,
+            Direction::South => &mut self.south,
+            Direction::West => &mut self.west,
+            Direction::Stay => &mut self.stay,
         }
     }
 }
