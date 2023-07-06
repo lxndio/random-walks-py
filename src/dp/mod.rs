@@ -11,6 +11,7 @@
 //! ```
 
 pub mod problems;
+pub mod propdp;
 pub mod store;
 
 use num::BigUint;

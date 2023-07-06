@@ -1,5 +1,6 @@
+use crate::dp::propdp::ProbabilityDynamicProgram;
 use crate::dp::DynamicProgram;
-use crate::steppers::Stepper;
+use crate::steppers::{ProbabilityStepper, Stepper};
 use num::BigUint;
 
 pub struct SimpleStepper;
@@ -23,6 +24,39 @@ impl Stepper for SimpleStepper {
 
         if y < limit_pos {
             sum += dp.at(x, y + 1, t);
+        }
+
+        sum
+    }
+
+    fn name(&self, short: bool) -> String {
+        if short {
+            String::from("sstep")
+        } else {
+            String::from("Simple Stepper")
+        }
+    }
+}
+
+impl ProbabilityStepper for SimpleStepper {
+    fn step(&self, dp: &ProbabilityDynamicProgram, x: isize, y: isize) -> BigUint {
+        let mut sum = dp.at(x, y, false);
+        let (limit_neg, limit_pos) = dp.limits();
+
+        if x > limit_neg {
+            sum += dp.at(x - 1, y, false);
+        }
+
+        if y > limit_neg {
+            sum += dp.at(x, y - 1, false);
+        }
+
+        if x < limit_pos {
+            sum += dp.at(x + 1, y, false);
+        }
+
+        if y < limit_pos {
+            sum += dp.at(x, y + 1, false);
         }
 
         sum

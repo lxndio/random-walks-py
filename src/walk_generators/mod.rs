@@ -2,6 +2,7 @@ pub mod biased_rw;
 pub mod correlated_rw;
 pub mod simple_rw;
 
+use crate::dp::propdp::ProbabilityDynamicProgram;
 use crate::dp::DynamicProgram;
 use std::ops::{Index, IndexMut};
 use strum::EnumIter;
@@ -12,6 +13,18 @@ pub trait WalkGenerator {
     fn generate_path(
         &self,
         dp: &DynamicProgram,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Walk;
+
+    fn name(&self, short: bool) -> String;
+}
+
+pub trait ProbabilityWalkGenerator {
+    fn generate_path(
+        &self,
+        dp: &ProbabilityDynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,

@@ -1,5 +1,6 @@
 use num::{One, Zero};
 
+use crate::dp::propdp::ProbabilityDynamicProgram;
 use crate::dp::DynamicProgram;
 
 /// Problems that a dynamic program can solve.
@@ -32,5 +33,44 @@ impl Problems for DynamicProgram {
 
     fn count_paths_over(&self, x: isize, y: isize, t: usize) {
         todo!()
+    }
+}
+
+impl Problems for ProbabilityDynamicProgram {
+    fn count_paths(&mut self) {
+        let (limit_neg, limit_pos) = self.limits();
+
+        self.set(0, 0, false, One::one());
+        self.set_probability(0, 0, 0, 1.0);
+
+        for t in 1..=limit_pos as usize {
+            for x in limit_neg..=limit_pos {
+                for y in limit_neg..=limit_pos {
+                    self.update(x, y);
+                }
+            }
+
+            self.compute_probabilities(t);
+        }
+    }
+
+    fn count_paths_over(&self, x: isize, y: isize, t: usize) {
+        todo!()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dp::problems::Problems;
+    use crate::dp::propdp::ProbabilityDynamicProgram;
+    use crate::steppers::simple::SimpleStepper;
+
+    #[test]
+    fn test_count_paths_probability_dp() {
+        let mut dp = ProbabilityDynamicProgram::new(10, SimpleStepper);
+        dp.count_paths();
+        dp.print(10);
+
+        assert!(true)
     }
 }
