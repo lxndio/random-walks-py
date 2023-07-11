@@ -1,7 +1,9 @@
 use crate::kernel::generator::KernelGenerator;
 
 pub mod generator;
+pub mod simple_rw;
 
+#[derive(Clone)]
 pub struct Kernel {
     probabilities: Vec<Vec<f64>>,
     name: (String, String),

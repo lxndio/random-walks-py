@@ -1,4 +1,4 @@
-pub mod simple_rw;
+pub mod standard;
 
 use crate::dp::DynamicProgram;
 use std::ops::{Index, IndexMut};

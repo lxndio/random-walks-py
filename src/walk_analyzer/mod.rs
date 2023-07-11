@@ -152,7 +152,7 @@ mod tests {
     use crate::walk_analyzer::{AnalysisResult, WalkAnalyzer};
     use crate::walk_generator::biased_rw::BiasedRwGenerator;
     use crate::walk_generator::correlated_rw::CorrelatedRwGenerator;
-    use crate::walk_generator::simple_rw::SimpleRwGenerator;
+    use crate::walk_generator::standard::SimpleRwGenerator;
     use crate::walk_generator::{Direction, WalkGenerator};
 
     #[test]
