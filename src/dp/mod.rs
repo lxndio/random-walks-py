@@ -2,7 +2,7 @@
 //!
 //! # Examples
 //!
-//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleStepper`] generator.
+//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleStepper`].
 //! Then use it to count the number of paths leading to each cell.
 //!
 //! ```
@@ -10,43 +10,39 @@
 //! dp.count_paths();
 //! ```
 
-pub mod problems;
-pub mod propdp;
 pub mod store;
 
+use crate::kernel::Kernel;
 use num::BigUint;
 use num::{One, Zero};
 use std::fmt::Debug;
 
-use crate::steppers::simple::SimpleStepper;
-use crate::steppers::Stepper;
-
 pub struct DynamicProgram {
-    table: Vec<Vec<Vec<BigUint>>>,
+    table: Vec<Vec<Vec<f64>>>,
     time_limit: usize,
-    stepper: Box<dyn Stepper>,
+    kernel: Kernel,
 }
 
 impl DynamicProgram {
-    pub fn new(time_limit: usize, stepper: impl Stepper + 'static) -> Self {
+    pub fn new(time_limit: usize, kernel: Kernel) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
                 time_limit + 1
             ],
             time_limit,
-            stepper: Box::new(stepper),
+            kernel,
         }
     }
 
-    pub fn with_boxed(time_limit: usize, stepper: Box<dyn Stepper>) -> Self {
+    pub fn with_boxed(time_limit: usize, kernel: Kernel) -> Self {
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
                 time_limit + 1
             ],
             time_limit,
-            stepper,
+            kernel,
         }
     }
 
@@ -54,36 +50,64 @@ impl DynamicProgram {
         (-(self.time_limit as isize), self.time_limit as isize)
     }
 
-    pub fn at(&self, x: isize, y: isize, t: usize) -> BigUint {
+    pub fn at(&self, x: isize, y: isize, t: usize) -> f64 {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
 
         self.table[t][x][y].clone()
     }
 
-    pub fn set(&mut self, x: isize, y: isize, t: usize, val: BigUint) {
+    pub fn set(&mut self, x: isize, y: isize, t: usize, val: f64) {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
 
         self.table[t][x][y] = val;
     }
 
-    pub fn update(&mut self, x: isize, y: isize, t: usize) {
-        self.set(x, y, t, self.stepper.step(self, x, y, t - 1));
+    pub fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {
+        let ks = (self.kernel.size() / 2) as isize;
+        let (limit_neg, limit_pos) = self.limits();
+        let mut sum = 0.0;
+
+        for i in x - ks..=x + ks {
+            if i < limit_neg || i > limit_pos {
+                continue;
+            }
+
+            for j in y - ks..=y + ks {
+                if j < limit_neg || j > limit_pos {
+                    continue;
+                }
+
+                // Kernel coordinates are inverted offset, i.e. -(x - i) and -(y - j)
+                let kernel_x = i - x;
+                let kernel_y = j - y;
+
+                sum += self.at(i, j, t - 1) * self.kernel.at(kernel_x, kernel_y);
+            }
+        }
+
+        self.set(x, y, t, sum);
+    }
+
+    pub fn compute(&mut self) {
+        let (limit_neg, limit_pos) = self.limits();
+
+        self.set(0, 0, 0, 1.0);
+
+        for t in 1..=limit_pos as usize {
+            for x in limit_neg..=limit_pos {
+                for y in limit_neg..=limit_pos {
+                    self.apply_kernel_at(x, y, t);
+                }
+            }
+        }
     }
 
     pub fn print(&self, t: usize) {
-        // Get number of digits of largest number
-        let max = self.table[t].iter().flatten().max().unwrap();
-        let max_digits = max.to_string().len();
-
         for y in 0..2 * self.time_limit + 2 {
             for x in 0..2 * self.time_limit + 2 {
-                let val = &self.table[t][x][y];
-                let digits = val.to_string().len();
-                let spaces = " ".repeat(max_digits - digits + 2);
-
-                print!("{}{}", val, spaces);
+                print!("{} ", self.table[t][x][y]);
             }
 
             println!();
