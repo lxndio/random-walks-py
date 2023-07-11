@@ -27,7 +27,7 @@ impl DynamicProgram {
     pub fn new(time_limit: usize, kernel: Kernel) -> Self {
         Self {
             table: vec![
-                vec![vec![Zero::zero(); 2 * time_limit + 2]; 2 * time_limit + 2];
+                vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
                 time_limit + 1
             ],
             time_limit,
@@ -79,9 +79,9 @@ impl DynamicProgram {
                     continue;
                 }
 
-                // Kernel coordinates are inverted offset, i.e. -(x - i) and -(y - j)
-                let kernel_x = i - x;
-                let kernel_y = j - y;
+                // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
+                let kernel_x = x - i;
+                let kernel_y = y - j;
 
                 sum += self.at(i, j, t - 1) * self.kernel.at(kernel_x, kernel_y);
             }
@@ -105,8 +105,8 @@ impl DynamicProgram {
     }
 
     pub fn print(&self, t: usize) {
-        for y in 0..2 * self.time_limit + 2 {
-            for x in 0..2 * self.time_limit + 2 {
+        for y in 0..2 * self.time_limit + 1 {
+            for x in 0..2 * self.time_limit + 1 {
                 print!("{} ", self.table[t][x][y]);
             }
 
