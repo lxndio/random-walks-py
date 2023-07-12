@@ -1,4 +1,4 @@
-use crate::dp::DynamicProgram;
+use crate::dp::simple::SimpleDynamicProgram;
 use std::fs::File;
 use std::io::{BufRead, BufReader, BufWriter, Error, ErrorKind, Write};
 use std::path::Path;
@@ -10,7 +10,7 @@ pub trait Store {
     fn to_files(&self, path: String) -> io::Result<()>;
 
     /// Load a precomputed dynamic program from files.
-    fn from_files(path: String, time_limit: usize) -> io::Result<DynamicProgram>;
+    fn from_files(path: String, time_limit: usize) -> io::Result<SimpleDynamicProgram>;
 }
 
 // impl Store for DynamicProgram {

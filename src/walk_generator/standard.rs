@@ -1,3 +1,4 @@
+use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgram;
 use crate::walk_generator::{Walk, WalkGenerator};
 use num::Zero;
@@ -9,7 +10,7 @@ pub struct StandardWalkGenerator;
 impl WalkGenerator for StandardWalkGenerator {
     fn generate_path(
         &self,
-        dp: &DynamicProgram,
+        dp: &SimpleDynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
