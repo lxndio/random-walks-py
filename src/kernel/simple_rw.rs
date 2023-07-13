@@ -4,13 +4,21 @@ use crate::kernel::Kernel;
 pub struct SimpleRwGenerator;
 
 impl KernelGenerator for SimpleRwGenerator {
-    fn prepare(&self, kernel: &mut Kernel) -> Result<(), String> {
-        kernel.initialize(3).unwrap();
+    fn prepare(&self, kernels: &mut Vec<Kernel>) -> Result<(), String> {
+        kernels
+            .get_mut(0)
+            .ok_or::<String>("No kernel to prepare.".into())?
+            .initialize(3)
+            .unwrap();
 
         Ok(())
     }
 
-    fn generate(&self, kernel: &mut Kernel) -> Result<(), String> {
+    fn generate(&self, kernels: &mut Vec<Kernel>) -> Result<(), String> {
+        let kernel = kernels
+            .get_mut(0)
+            .ok_or::<String>("No kernel for generation.".into())?;
+
         kernel.set(0, 0, 0.2);
         kernel.set(0, -1, 0.2);
         kernel.set(1, 0, 0.2);
@@ -18,6 +26,10 @@ impl KernelGenerator for SimpleRwGenerator {
         kernel.set(-1, 0, 0.2);
 
         Ok(())
+    }
+
+    fn generates_qty(&self) -> usize {
+        1
     }
 
     fn name(&self) -> (String, String) {

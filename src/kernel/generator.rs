@@ -1,7 +1,8 @@
 use crate::kernel::Kernel;
 
 pub trait KernelGenerator {
-    fn prepare(&self, kernel: &mut Kernel) -> Result<(), String>;
-    fn generate(&self, kernel: &mut Kernel) -> Result<(), String>;
+    fn prepare(&self, kernels: &mut Vec<Kernel>) -> Result<(), String>;
+    fn generate(&self, kernels: &mut Vec<Kernel>) -> Result<(), String>;
+    fn generates_qty(&self) -> usize;
     fn name(&self) -> (String, String);
 }

@@ -1,12 +1,14 @@
 use crate::kernel::generator::KernelGenerator;
+use std::fmt::{Debug, Formatter, Write};
 use std::ops::{Index, IndexMut};
 use strum::EnumIter;
 
 pub mod biased_rw;
+pub mod correlated_rw;
 pub mod generator;
 pub mod simple_rw;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Kernel {
     probabilities: Vec<Vec<f64>>,
     name: (String, String),
@@ -18,11 +20,25 @@ impl Kernel {
             probabilities: Vec::new(),
             name: generator.name(),
         };
+        let mut kernels = vec![kernel];
 
-        generator.prepare(&mut kernel)?;
-        generator.generate(&mut kernel)?;
+        generator.prepare(&mut kernels)?;
+        generator.generate(&mut kernels)?;
 
-        Ok(kernel)
+        Ok(kernels[0].clone())
+    }
+
+    pub fn multiple_from_generator(generator: impl KernelGenerator) -> Result<Vec<Kernel>, String> {
+        let mut kernel = Kernel {
+            probabilities: Vec::new(),
+            name: generator.name(),
+        };
+        let mut kernels = vec![kernel.clone(); generator.generates_qty()];
+
+        generator.prepare(&mut kernels)?;
+        generator.generate(&mut kernels)?;
+
+        Ok(kernels)
     }
 
     pub fn initialize(&mut self, size: usize) -> Result<(), String> {
@@ -84,6 +100,23 @@ impl Kernel {
         } else {
             self.name.1.clone()
         }
+    }
+}
+
+impl Debug for Kernel {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut res = format!("{}\n", self.name(false));
+
+        for y in 0..self.probabilities.len() {
+            res += "| ";
+
+            for x in 0..self.probabilities.len() {
+                res += &format!("{} ", self.probabilities[x][y]);
+            }
+            res += "|\n";
+        }
+
+        f.write_str(res.as_str())
     }
 }
 
@@ -180,7 +213,21 @@ mod tests {
     use crate::kernel::Kernel;
 
     #[test]
-    fn test_rotate() {
+    fn test_rotate_invalid() {
+        let mut kernel = Kernel {
+            probabilities: vec![
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 5.0, 6.0],
+                vec![7.0, 8.0, 9.0],
+            ],
+            name: ("".into(), "".into()),
+        };
+
+        assert!(kernel.rotate(87).is_err());
+    }
+
+    #[test]
+    fn test_rotate_90() {
         let mut kernel = Kernel {
             probabilities: vec![
                 vec![1.0, 2.0, 3.0],
@@ -196,8 +243,49 @@ mod tests {
             vec![1.0, 4.0, 7.0],
         ];
 
-        assert!(kernel.rotate(87).is_err());
         assert!(kernel.rotate(90).is_ok());
+        assert_eq!(kernel.probabilities, correct_rotation);
+    }
+
+    #[test]
+    fn test_rotate_180() {
+        let mut kernel = Kernel {
+            probabilities: vec![
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 5.0, 6.0],
+                vec![7.0, 8.0, 9.0],
+            ],
+            name: ("".into(), "".into()),
+        };
+
+        let correct_rotation = vec![
+            vec![9.0, 8.0, 7.0],
+            vec![6.0, 5.0, 4.0],
+            vec![3.0, 2.0, 1.0],
+        ];
+
+        assert!(kernel.rotate(180).is_ok());
+        assert_eq!(kernel.probabilities, correct_rotation);
+    }
+
+    #[test]
+    fn test_rotate_270() {
+        let mut kernel = Kernel {
+            probabilities: vec![
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 5.0, 6.0],
+                vec![7.0, 8.0, 9.0],
+            ],
+            name: ("".into(), "".into()),
+        };
+
+        let correct_rotation = vec![
+            vec![7.0, 4.0, 1.0],
+            vec![8.0, 5.0, 2.0],
+            vec![9.0, 6.0, 3.0],
+        ];
+
+        assert!(kernel.rotate(270).is_ok());
         assert_eq!(kernel.probabilities, correct_rotation);
     }
 }
