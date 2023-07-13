@@ -1,4 +1,4 @@
-use crate::dp::DynamicProgram;
+use crate::dp::{DynamicProgram, DynamicProgramOptions};
 use crate::kernel::Kernel;
 use num::Zero;
 use std::fmt::Debug;
@@ -9,8 +9,27 @@ pub struct SimpleDynamicProgram {
     kernel: Kernel,
 }
 
+impl SimpleDynamicProgram {
+    pub fn at(&self, x: isize, y: isize, t: usize) -> f64 {
+        let x = (self.time_limit as isize + x) as usize;
+        let y = (self.time_limit as isize + y) as usize;
+
+        self.table[t][x][y].clone()
+    }
+
+    pub fn set(&mut self, x: isize, y: isize, t: usize, val: f64) {
+        let x = (self.time_limit as isize + x) as usize;
+        let y = (self.time_limit as isize + y) as usize;
+
+        self.table[t][x][y] = val;
+    }
+}
+
 impl DynamicProgram for SimpleDynamicProgram {
-    fn new(time_limit: usize, kernel: Kernel) -> Self {
+    fn new(options: DynamicProgramOptions) -> Self {
+        let time_limit = options.time_limit;
+        let kernel = options.kernel.expect("kernel option not set.");
+
         Self {
             table: vec![
                 vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
@@ -23,20 +42,6 @@ impl DynamicProgram for SimpleDynamicProgram {
 
     fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
-    }
-
-    fn at(&self, x: isize, y: isize, t: usize) -> f64 {
-        let x = (self.time_limit as isize + x) as usize;
-        let y = (self.time_limit as isize + y) as usize;
-
-        self.table[t][x][y].clone()
-    }
-
-    fn set(&mut self, x: isize, y: isize, t: usize, val: f64) {
-        let x = (self.time_limit as isize + x) as usize;
-        let y = (self.time_limit as isize + y) as usize;
-
-        self.table[t][x][y] = val;
     }
 
     fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {

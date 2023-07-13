@@ -10,25 +10,27 @@
 //! dp.count_paths();
 //! ```
 
+pub mod multi;
 pub mod simple;
 pub mod store;
 
 use crate::kernel::Kernel;
 
 pub trait DynamicProgram {
-    /// Create a new dynamic program with a given `time_limit`
-    /// using a given [`kernel`] for generation.
-    fn new(time_limit: usize, kernel: Kernel) -> Self;
+    fn new(options: DynamicProgramOptions) -> Self;
 
     fn limits(&self) -> (isize, isize);
-
-    fn at(&self, x: isize, y: isize, t: usize) -> f64;
-
-    fn set(&mut self, x: isize, y: isize, t: usize, val: f64);
 
     fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize);
 
     fn compute(&mut self);
 
     fn print(&self, t: usize);
+}
+
+#[derive(Default)]
+pub struct DynamicProgramOptions {
+    pub time_limit: usize,
+    pub kernel: Option<Kernel>,
+    pub kernels: Option<Vec<Kernel>>,
 }
