@@ -23,28 +23,8 @@ impl SimpleDynamicProgram {
 
         self.table[t][x][y] = val;
     }
-}
 
-impl DynamicProgram for SimpleDynamicProgram {
-    fn new(options: DynamicProgramOptions) -> Self {
-        let time_limit = options.time_limit;
-        let kernel = options.kernel.expect("kernel option not set.");
-
-        Self {
-            table: vec![
-                vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
-                time_limit + 1
-            ],
-            time_limit,
-            kernel,
-        }
-    }
-
-    fn limits(&self) -> (isize, isize) {
-        (-(self.time_limit as isize), self.time_limit as isize)
-    }
-
-    fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {
+    pub fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {
         let ks = (self.kernel.size() / 2) as isize;
         let (limit_neg, limit_pos) = self.limits();
         let mut sum = 0.0;
@@ -68,6 +48,26 @@ impl DynamicProgram for SimpleDynamicProgram {
         }
 
         self.set(x, y, t, sum);
+    }
+}
+
+impl DynamicProgram for SimpleDynamicProgram {
+    fn new(options: DynamicProgramOptions) -> Self {
+        let time_limit = options.time_limit;
+        let kernel = options.kernel.expect("kernel option not set.");
+
+        Self {
+            table: vec![
+                vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
+                time_limit + 1
+            ],
+            time_limit,
+            kernel,
+        }
+    }
+
+    fn limits(&self) -> (isize, isize) {
+        (-(self.time_limit as isize), self.time_limit as isize)
     }
 
     fn compute(&mut self) {

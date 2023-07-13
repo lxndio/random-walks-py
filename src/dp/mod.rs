@@ -21,8 +21,6 @@ pub trait DynamicProgram {
 
     fn limits(&self) -> (isize, isize);
 
-    fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize);
-
     fn compute(&mut self);
 
     fn print(&self, t: usize);

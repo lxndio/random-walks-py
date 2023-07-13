@@ -22,6 +22,34 @@ impl MultiDynamicProgram {
 
         self.table[t][variant][x][y] = val;
     }
+
+    pub fn apply_kernels_at(&mut self, x: isize, y: isize, t: usize) {
+        for (variant, kernel) in self.kernels.clone().iter().enumerate() {
+            let ks = (kernel.size() / 2) as isize;
+            let (limit_neg, limit_pos) = self.limits();
+            let mut sum = 0.0;
+
+            for i in x - ks..=x + ks {
+                if i < limit_neg || i > limit_pos {
+                    continue;
+                }
+
+                for j in y - ks..=y + ks {
+                    if j < limit_neg || j > limit_pos {
+                        continue;
+                    }
+
+                    // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
+                    let kernel_x = x - i;
+                    let kernel_y = y - j;
+
+                    sum += self.at(i, j, t - 1, variant) * kernel.at(kernel_x, kernel_y);
+                }
+            }
+
+            self.set(x, y, t, variant, sum);
+        }
+    }
 }
 
 impl DynamicProgram for MultiDynamicProgram {
@@ -46,38 +74,31 @@ impl DynamicProgram for MultiDynamicProgram {
         (-(self.time_limit as isize), self.time_limit as isize)
     }
 
-    fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {
-        todo!()
-        // let ks = (self.kernel.size() / 2) as isize;
-        // let (limit_neg, limit_pos) = self.limits();
-        // let mut sum = 0.0;
-        //
-        // for i in x - ks..=x + ks {
-        //     if i < limit_neg || i > limit_pos {
-        //         continue;
-        //     }
-        //
-        //     for j in y - ks..=y + ks {
-        //         if j < limit_neg || j > limit_pos {
-        //             continue;
-        //         }
-        //
-        //         // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
-        //         let kernel_x = x - i;
-        //         let kernel_y = y - j;
-        //
-        //         sum += self.at(i, j, t - 1) * self.kernel.at(kernel_x, kernel_y);
-        //     }
-        // }
-        //
-        // self.set(x, y, t, sum);
-    }
-
     fn compute(&mut self) {
-        todo!()
+        let (limit_neg, limit_pos) = self.limits();
+
+        for variant in 0..self.kernels.len() {
+            self.set(0, 0, 0, variant, 1.0);
+
+            for t in 1..=limit_pos as usize {
+                for x in limit_neg..=limit_pos {
+                    for y in limit_neg..=limit_pos {
+                        self.apply_kernels_at(x, y, t);
+                    }
+                }
+            }
+        }
     }
 
     fn print(&self, t: usize) {
-        todo!()
+        for variant in 0..self.kernels.len() {
+            for y in 0..2 * self.time_limit + 1 {
+                for x in 0..2 * self.time_limit + 1 {
+                    print!("{} ", self.table[t][variant][x][y]);
+                }
+
+                println!();
+            }
+        }
     }
 }

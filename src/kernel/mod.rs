@@ -53,6 +53,31 @@ impl Kernel {
         self.probabilities[x][y]
     }
 
+    /// Rotate kernel matrix counterclockwise by `degrees`. Only multiples of 90° are supported.
+    pub fn rotate(&mut self, degrees: usize) -> Result<(), String> {
+        if degrees % 90 != 0 {
+            Err("degrees must be a multiple of 90.".into())
+        } else {
+            let n = self.probabilities.len();
+
+            for _ in 0..degrees / 90 {
+                // Source: https://www.enjoyalgorithms.com/blog/rotate-a-matrix-by-90-degrees-in-an-anticlockwise-direction
+                for i in 0..n / 2 {
+                    for j in i..n - i - 1 {
+                        let temp = self.probabilities[i][j];
+
+                        self.probabilities[i][j] = self.probabilities[j][n - 1 - i];
+                        self.probabilities[j][n - 1 - i] = self.probabilities[n - 1 - i][n - 1 - j];
+                        self.probabilities[n - 1 - i][n - 1 - j] = self.probabilities[n - 1 - j][i];
+                        self.probabilities[n - 1 - j][i] = temp;
+                    }
+                }
+            }
+
+            Ok(())
+        }
+    }
+
     pub fn name(&self, short: bool) -> String {
         if short {
             self.name.0.clone()
@@ -147,5 +172,32 @@ impl<T> IndexMut<Direction> for Directions<T> {
             Direction::West => &mut self.west,
             Direction::Stay => &mut self.stay,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::kernel::Kernel;
+
+    #[test]
+    fn test_rotate() {
+        let mut kernel = Kernel {
+            probabilities: vec![
+                vec![1.0, 2.0, 3.0],
+                vec![4.0, 5.0, 6.0],
+                vec![7.0, 8.0, 9.0],
+            ],
+            name: ("".into(), "".into()),
+        };
+
+        let correct_rotation = vec![
+            vec![3.0, 6.0, 9.0],
+            vec![2.0, 5.0, 8.0],
+            vec![1.0, 4.0, 7.0],
+        ];
+
+        assert!(kernel.rotate(87).is_err());
+        assert!(kernel.rotate(90).is_ok());
+        assert_eq!(kernel.probabilities, correct_rotation);
     }
 }
