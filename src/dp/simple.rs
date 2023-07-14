@@ -2,6 +2,7 @@ use crate::dp::{DynamicProgram, DynamicProgramOptions};
 use crate::kernel::Kernel;
 use num::Zero;
 use std::fmt::Debug;
+use std::time::Instant;
 
 pub struct SimpleDynamicProgram {
     table: Vec<Vec<Vec<f64>>>,
@@ -75,6 +76,8 @@ impl DynamicProgram for SimpleDynamicProgram {
 
         self.set(0, 0, 0, 1.0);
 
+        let start = Instant::now();
+
         for t in 1..=limit_pos as usize {
             for x in limit_neg..=limit_pos {
                 for y in limit_neg..=limit_pos {
@@ -82,6 +85,10 @@ impl DynamicProgram for SimpleDynamicProgram {
                 }
             }
         }
+
+        let duration = start.elapsed();
+
+        println!("Computation took {:?}", duration);
     }
 
     fn print(&self, t: usize) {

@@ -14,6 +14,8 @@ pub mod multi;
 pub mod simple;
 pub mod store;
 
+use crate::dp::multi::MultiDynamicProgram;
+use crate::dp::simple::SimpleDynamicProgram;
 use crate::kernel::Kernel;
 
 pub trait DynamicProgram {
@@ -31,4 +33,9 @@ pub struct DynamicProgramOptions {
     pub time_limit: usize,
     pub kernel: Option<Kernel>,
     pub kernels: Option<Vec<Kernel>>,
+}
+
+pub enum DynamicProgramType {
+    Simple(SimpleDynamicProgram),
+    Multi(MultiDynamicProgram),
 }

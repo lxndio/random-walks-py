@@ -1,6 +1,7 @@
 use crate::dp::{DynamicProgram, DynamicProgramOptions};
 use crate::kernel::Kernel;
 use num::Zero;
+use std::time::Instant;
 
 pub struct MultiDynamicProgram {
     table: Vec<Vec<Vec<Vec<f64>>>>,
@@ -21,6 +22,10 @@ impl MultiDynamicProgram {
         let y = (self.time_limit as isize + y) as usize;
 
         self.table[t][variant][x][y] = val;
+    }
+
+    pub fn variants(&self) -> usize {
+        self.kernels.len()
     }
 
     pub fn apply_kernels_at(&mut self, x: isize, y: isize, t: usize) {
@@ -79,15 +84,21 @@ impl DynamicProgram for MultiDynamicProgram {
 
         for variant in 0..self.kernels.len() {
             self.set(0, 0, 0, variant, 1.0);
+        }
 
-            for t in 1..=limit_pos as usize {
-                for x in limit_neg..=limit_pos {
-                    for y in limit_neg..=limit_pos {
-                        self.apply_kernels_at(x, y, t);
-                    }
+        let start = Instant::now();
+
+        for t in 1..=limit_pos as usize {
+            for x in limit_neg..=limit_pos {
+                for y in limit_neg..=limit_pos {
+                    self.apply_kernels_at(x, y, t);
                 }
             }
         }
+
+        let duration = start.elapsed();
+
+        println!("Computation took {:?}", duration);
     }
 
     fn print(&self, t: usize) {
