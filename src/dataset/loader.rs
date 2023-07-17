@@ -8,6 +8,8 @@ pub trait DatasetLoader {
     fn load(&self) -> anyhow::Result<Vec<Datapoint>>;
 
     fn stream(&self) -> anyhow::Result<()>;
+
+    fn coordinate_type(&self) -> CoordinateType;
 }
 
 pub enum ColumnAction {
@@ -17,7 +19,7 @@ pub enum ColumnAction {
     Discard,
 }
 
-#[derive(Default)]
+#[derive(Default, Copy, Clone, PartialEq)]
 pub enum CoordinateType {
     #[default]
     GCS,
@@ -109,5 +111,9 @@ impl DatasetLoader for CSVLoader {
 
     fn stream(&self) -> anyhow::Result<()> {
         todo!()
+    }
+
+    fn coordinate_type(&self) -> CoordinateType {
+        self.options.coordinate_type
     }
 }
