@@ -1,13 +1,31 @@
 pub mod loader;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
+use anyhow::Context;
+use num::Signed;
 use plotters::prelude::*;
+use rand::Rng;
 use std::collections::HashMap;
+
+pub trait Coordinates<T: Signed> {
+    fn x(&self) -> T;
+    fn y(&self) -> T;
+}
 
 #[derive(Default, Debug, Clone)]
 pub struct GCSPoint {
     x: f64,
     y: f64,
+}
+
+impl Coordinates<f64> for GCSPoint {
+    fn x(&self) -> f64 {
+        self.x
+    }
+
+    fn y(&self) -> f64 {
+        self.y
+    }
 }
 
 impl From<(f64, f64)> for GCSPoint {
@@ -31,6 +49,16 @@ pub struct XYPoint {
     y: i64,
 }
 
+impl Coordinates<i64> for XYPoint {
+    fn x(&self) -> i64 {
+        self.x
+    }
+
+    fn y(&self) -> i64 {
+        self.y
+    }
+}
+
 impl From<(i64, i64)> for XYPoint {
     fn from(value: (i64, i64)) -> Self {
         Self {
@@ -50,6 +78,38 @@ impl ToString for XYPoint {
 pub enum Point {
     GCS(GCSPoint),
     XY(XYPoint),
+}
+
+impl Coordinates<f64> for Point {
+    fn x(&self) -> f64 {
+        match self {
+            Self::GCS(point) => point.x,
+            Self::XY(_) => panic!("XY points use i64 instead of f64."),
+        }
+    }
+
+    fn y(&self) -> f64 {
+        match self {
+            Self::GCS(point) => point.y,
+            Self::XY(_) => panic!("XY points use i64 instead of f64."),
+        }
+    }
+}
+
+impl Coordinates<i64> for Point {
+    fn x(&self) -> i64 {
+        match self {
+            Self::GCS(_) => panic!("GCS points use f64 instead of i64."),
+            Self::XY(point) => point.x,
+        }
+    }
+
+    fn y(&self) -> i64 {
+        match self {
+            Self::GCS(_) => panic!("GCS points use f64 instead of i64."),
+            Self::XY(point) => point.y,
+        }
+    }
 }
 
 impl ToString for Point {
@@ -274,6 +334,40 @@ impl Dataset {
         let coordinate_range_x = min.x..max.x;
         let coordinate_range_y = min.y..max.y;
 
+        // Set colors for different classes
+
+        let mut colors: HashMap<(i64, i64), RGBColor> = HashMap::new();
+
+        if let Some(color_by) = &color_by {
+            let mut class_colors = HashMap::new();
+
+            for datapoint in self.data.iter().skip(from).take(to) {
+                class_colors.insert(
+                    datapoint
+                        .metadata
+                        .get(color_by)
+                        .context("Found datapoint without color_by metadata key.")?
+                        .clone(),
+                    RGBColor(0, 0, 0),
+                );
+            }
+
+            let mut rng = rand::thread_rng();
+
+            for color in class_colors.values_mut() {
+                *color = RGBColor(rng.gen(), rng.gen(), rng.gen());
+            }
+
+            for datapoint in self.data.iter().skip(from).take(to) {
+                colors.insert(
+                    (datapoint.point.x(), datapoint.point.y()),
+                    class_colors[&datapoint.metadata[color_by]],
+                );
+            }
+        }
+
+        // Draw plot
+
         let root = BitMapBackend::new(&path, (1000, 1000)).into_drawing_area();
         root.fill(&WHITE).unwrap();
         let root = root.margin(10, 10, 10, 10);
@@ -289,18 +383,29 @@ impl Dataset {
 
         chart.configure_mesh().draw()?;
 
-        chart.draw_series(PointSeries::of_element(
-            self.data.iter().skip(from).take(to).map(|datapoint| {
-                if let Point::XY(point) = &datapoint.point {
-                    (point.x, point.y)
-                } else {
-                    unreachable!()
-                }
-            }),
-            2,
-            &BLACK,
-            &|c, s, st| EmptyElement::at(c) + Circle::new((0, 0), s, st.filled()),
-        ))?;
+        let iter = self.data.iter().skip(from).take(to).map(|datapoint| {
+            if let Point::XY(point) = &datapoint.point {
+                (point.x, point.y)
+            } else {
+                unreachable!()
+            }
+        });
+
+        if color_by.is_some() {
+            chart.draw_series(PointSeries::of_element(iter, 2, &BLACK, &|c, s, st| {
+                let style = ShapeStyle {
+                    color: RGBAColor::from(colors[&c]),
+                    filled: true,
+                    stroke_width: st.stroke_width,
+                };
+
+                EmptyElement::at(c) + Circle::new((0, 0), s, style)
+            }))?;
+        } else {
+            chart.draw_series(PointSeries::of_element(iter, 2, &BLACK, &|c, s, st| {
+                EmptyElement::at(c) + Circle::new((0, 0), s, st.filled())
+            }))?;
+        }
 
         root.present()?;
 
