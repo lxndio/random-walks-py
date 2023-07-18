@@ -1,124 +1,17 @@
 pub mod loader;
+pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use num::Signed;
 use plotters::prelude::*;
+use point::{Coordinates, GCSPoint, Point, XYPoint};
 use rand::Rng;
 use std::collections::HashMap;
 
-pub trait Coordinates<T: Signed> {
-    fn x(&self) -> T;
-    fn y(&self) -> T;
-}
-
-#[derive(Default, Debug, Clone, PartialEq)]
-pub struct GCSPoint {
-    x: f64,
-    y: f64,
-}
-
-impl Coordinates<f64> for GCSPoint {
-    fn x(&self) -> f64 {
-        self.x
-    }
-
-    fn y(&self) -> f64 {
-        self.y
-    }
-}
-
-impl From<(f64, f64)> for GCSPoint {
-    fn from(value: (f64, f64)) -> Self {
-        Self {
-            x: value.0,
-            y: value.1,
-        }
-    }
-}
-
-impl ToString for GCSPoint {
-    fn to_string(&self) -> String {
-        format!("({}, {})", self.x, self.y)
-    }
-}
-
-#[derive(Default, Debug, Clone, PartialEq)]
-pub struct XYPoint {
-    x: i64,
-    y: i64,
-}
-
-impl Coordinates<i64> for XYPoint {
-    fn x(&self) -> i64 {
-        self.x
-    }
-
-    fn y(&self) -> i64 {
-        self.y
-    }
-}
-
-impl From<(i64, i64)> for XYPoint {
-    fn from(value: (i64, i64)) -> Self {
-        Self {
-            x: value.0,
-            y: value.1,
-        }
-    }
-}
-
-impl ToString for XYPoint {
-    fn to_string(&self) -> String {
-        format!("({}, {})", self.x, self.y)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Point {
-    GCS(GCSPoint),
-    XY(XYPoint),
-}
-
-impl Coordinates<f64> for Point {
-    fn x(&self) -> f64 {
-        match self {
-            Self::GCS(point) => point.x,
-            Self::XY(_) => panic!("XY points use i64 instead of f64."),
-        }
-    }
-
-    fn y(&self) -> f64 {
-        match self {
-            Self::GCS(point) => point.y,
-            Self::XY(_) => panic!("XY points use i64 instead of f64."),
-        }
-    }
-}
-
-impl Coordinates<i64> for Point {
-    fn x(&self) -> i64 {
-        match self {
-            Self::GCS(_) => panic!("GCS points use f64 instead of i64."),
-            Self::XY(point) => point.x,
-        }
-    }
-
-    fn y(&self) -> i64 {
-        match self {
-            Self::GCS(_) => panic!("GCS points use f64 instead of i64."),
-            Self::XY(point) => point.y,
-        }
-    }
-}
-
-impl ToString for Point {
-    fn to_string(&self) -> String {
-        match self {
-            Point::GCS(p) => format!("GCS{}", p.to_string()),
-            Point::XY(p) => format!("XY{}", p.to_string()),
-        }
-    }
+pub enum DatasetFilter {
+    ByMetadata(Vec<(String, String)>),
+    ByCoordinates(Point, Point),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -177,6 +70,76 @@ impl Dataset {
         let to = to.unwrap_or(self.data.len());
 
         self.data = self.data[from..to].to_vec();
+    }
+
+    /// Remove all datapoints from the dataset, keeping only the datapoints that match
+    /// the given [`DatasetFilter`]s.
+    ///
+    /// Returns an error if a filter is invalid, otherwise returns the number of datapoints
+    /// that were kept.
+    pub fn filter(&mut self, filters: Vec<DatasetFilter>) -> anyhow::Result<usize> {
+        let mut filtered_data = Vec::new();
+
+        for datapoint in self.data.iter() {
+            let mut keep = true;
+
+            for filter in filters.iter() {
+                match filter {
+                    DatasetFilter::ByMetadata(metadata) => {
+                        for (key, value) in metadata.iter() {
+                            if datapoint.metadata.get(key) != Some(value) {
+                                keep = false;
+                                break;
+                            }
+                        }
+                    }
+                    DatasetFilter::ByCoordinates(from, to) => match self.coordinate_type {
+                        CoordinateType::GCS => {
+                            let Point::GCS(from) = from else {
+                                    return Err(anyhow!("Expected GCS coordinates in filter."));
+                                };
+                            let Point::GCS(to) = to else {
+                                    return Err(anyhow!("Expected GCS coordinates in filter."));
+                                };
+
+                            let x: f64 = datapoint.point.x();
+                            let y: f64 = datapoint.point.y();
+
+                            if x < from.x || x > to.x || y < from.y || y > to.y {
+                                keep = false;
+                                break;
+                            }
+                        }
+                        CoordinateType::XY => {
+                            let Point::XY(from) = from else {
+                                    return Err(anyhow!("Expected XY coordinates in filter."));
+                                };
+                            let Point::XY(to) = to else {
+                                    return Err(anyhow!("Expected XY coordinates in filter."));
+                                };
+
+                            let x: i64 = datapoint.point.x();
+                            let y: i64 = datapoint.point.y();
+
+                            if x < from.x || x > to.x || y < from.y || y > to.y {
+                                keep = false;
+                                break;
+                            }
+                        }
+                    },
+                }
+            }
+
+            if keep {
+                filtered_data.push(datapoint.clone());
+            }
+        }
+
+        let filtered = filtered_data.len();
+
+        self.data = filtered_data;
+
+        Ok(filtered)
     }
 
     /// Find the minimum and maximum coordinates of the dataset.
@@ -432,7 +395,8 @@ impl Dataset {
 #[cfg(test)]
 mod tests {
     use crate::dataset::loader::CoordinateType;
-    use crate::dataset::{Datapoint, Dataset, Point, XYPoint};
+    use crate::dataset::point::{Point, XYPoint};
+    use crate::dataset::{Datapoint, Dataset};
     use std::collections::HashMap;
 
     #[test]

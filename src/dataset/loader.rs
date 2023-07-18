@@ -1,4 +1,5 @@
-use crate::dataset::{Datapoint, GCSPoint, Point, XYPoint};
+use crate::dataset::point::{GCSPoint, Point, XYPoint};
+use crate::dataset::Datapoint;
 use anyhow::Context;
 use std::collections::HashMap;
 use std::io;
