@@ -12,7 +12,7 @@ pub trait Coordinates<T: Signed> {
     fn y(&self) -> T;
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct GCSPoint {
     x: f64,
     y: f64,
@@ -43,7 +43,7 @@ impl ToString for GCSPoint {
     }
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct XYPoint {
     x: i64,
     y: i64,
@@ -74,7 +74,7 @@ impl ToString for XYPoint {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Point {
     GCS(GCSPoint),
     XY(XYPoint),
@@ -121,7 +121,7 @@ impl ToString for Point {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Datapoint {
     point: Point,
     metadata: HashMap<String, String>,
@@ -159,8 +159,24 @@ impl Dataset {
         self.data.len()
     }
 
+    pub fn push(&mut self, datapoint: Datapoint) {
+        self.data.push(datapoint);
+    }
+
     pub fn get(&self, index: usize) -> Option<&Datapoint> {
         self.data.get(index)
+    }
+
+    /// Remove all datapoints from the dataset, keeping only the datapoints in the range
+    /// `[from, to)`.
+    ///
+    /// If `from` is `None`, then the range starts at the beginning of the dataset. If `to` is
+    /// `None`, then the range ends at the end of the dataset.
+    pub fn keep(&mut self, from: Option<usize>, to: Option<usize>) {
+        let from = from.unwrap_or(0);
+        let to = to.unwrap_or(self.data.len());
+
+        self.data = self.data[from..to].to_vec();
     }
 
     /// Find the minimum and maximum coordinates of the dataset.
@@ -410,5 +426,39 @@ impl Dataset {
         root.present()?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dataset::loader::CoordinateType;
+    use crate::dataset::{Datapoint, Dataset, Point, XYPoint};
+    use std::collections::HashMap;
+
+    #[test]
+    fn test_dataset_keep() {
+        let mut dataset = Dataset::new(CoordinateType::XY);
+        let mut keep_dataset = Dataset::new(CoordinateType::XY);
+
+        for i in 0..1000 {
+            dataset.push(Datapoint {
+                point: Point::XY(XYPoint { x: i, y: i }),
+                metadata: HashMap::new(),
+            });
+
+            if i >= 100 && i < 200 {
+                keep_dataset.push(Datapoint {
+                    point: Point::XY(XYPoint { x: i, y: i }),
+                    metadata: HashMap::new(),
+                })
+            }
+        }
+
+        dataset.keep(Some(100), Some(200));
+
+        assert!(keep_dataset
+            .data
+            .iter()
+            .all(|item| dataset.data.contains(item)));
     }
 }
