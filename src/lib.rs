@@ -4,4 +4,4 @@ pub mod dataset;
 pub mod dp;
 pub mod kernel;
 pub mod walk_analyzer;
-pub mod walk_generator;
+pub mod walker;

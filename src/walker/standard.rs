@@ -1,23 +1,23 @@
 use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgramType::Simple;
 use crate::dp::{DynamicProgram, DynamicProgramType};
-use crate::walk_generator::{Walk, WalkGenerationError, WalkGenerator};
+use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
-pub struct StandardWalkGenerator;
+pub struct StandardWalker;
 
-impl WalkGenerator for StandardWalkGenerator {
+impl Walker for StandardWalker {
     fn generate_path(
         &self,
         dpt: &DynamicProgramType,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
-    ) -> Result<Walk, WalkGenerationError> {
+    ) -> Result<Walk, WalkerError> {
         let Simple(dp) = dpt else {
-            return Err(WalkGenerationError::WrongDynamicProgramType);
+            return Err(WalkerError::WrongDynamicProgramType);
         };
 
         let mut path = Vec::new();
@@ -26,7 +26,7 @@ impl WalkGenerator for StandardWalkGenerator {
 
         // Check if any path exists leading to the given end point
         if dp.at(to_x, to_y, time_steps).is_zero() {
-            return Err(WalkGenerationError::NoPathExists);
+            return Err(WalkerError::NoPathExists);
         }
 
         for t in (1..=time_steps).rev() {
@@ -62,7 +62,7 @@ impl WalkGenerator for StandardWalkGenerator {
         if short {
             String::from("swg")
         } else {
-            String::from("Standard Walk Generator")
+            String::from("Standard Walker")
         }
     }
 }

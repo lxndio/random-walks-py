@@ -1,5 +1,5 @@
 use crate::kernel::{Direction, Directions};
-use crate::walk_generator::Walk;
+use crate::walker::Walk;
 use num::ToPrimitive;
 use strum::IntoEnumIterator;
 
@@ -151,10 +151,10 @@ impl WalkAnalyzerBuilder {
 //     use crate::dp::DynamicProgram;
 //     use crate::stepper::simple::SimpleStepper;
 //     use crate::walk_analyzer::{AnalysisResult, WalkAnalyzer};
-//     use crate::walk_generator::biased_rw::BiasedRwGenerator;
-//     use crate::walk_generator::correlated_rw::CorrelatedRwGenerator;
-//     use crate::walk_generator::standard::SimpleRwGenerator;
-//     use crate::walk_generator::{Direction, WalkGenerator};
+//     use crate::walker::biased_rw::BiasedRwGenerator;
+//     use crate::walker::correlated_rw::CorrelatedRwGenerator;
+//     use crate::walker::standard::SimpleRwGenerator;
+//     use crate::walker::{Direction, WalkGenerator};
 //
 //     #[test]
 //     fn test_analyze_simple_rw() {

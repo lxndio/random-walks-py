@@ -3,7 +3,7 @@ pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
 use crate::dp::{DynamicProgram, DynamicProgramType};
-use crate::walk_generator::{Walk, WalkGenerator};
+use crate::walker::{Walk, Walker};
 use anyhow::{anyhow, bail, Context};
 use num::Signed;
 use plotters::prelude::*;
@@ -303,7 +303,7 @@ impl Dataset {
     pub fn rw_between(
         &self,
         dpt: &DynamicProgramType,
-        generator: Box<dyn WalkGenerator>,
+        generator: Box<dyn Walker>,
         from: usize,
         to: usize,
         time_steps: usize,

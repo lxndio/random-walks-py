@@ -1,24 +1,24 @@
 use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgramType::Multi;
 use crate::dp::{DynamicProgram, DynamicProgramType};
-use crate::walk_generator::{Walk, WalkGenerationError, WalkGenerator};
+use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::Distribution;
 use rand::Rng;
 
-pub struct CorrelatedWalkGenerator;
+pub struct CorrelatedWalker;
 
-impl WalkGenerator for CorrelatedWalkGenerator {
+impl Walker for CorrelatedWalker {
     fn generate_path(
         &self,
         dpt: &DynamicProgramType,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
-    ) -> Result<Walk, WalkGenerationError> {
+    ) -> Result<Walk, WalkerError> {
         let Multi(dp) = dpt else {
-            return Err(WalkGenerationError::WrongDynamicProgramType);
+            return Err(WalkerError::WrongDynamicProgramType);
         };
 
         let mut path = Vec::new();
@@ -28,7 +28,7 @@ impl WalkGenerator for CorrelatedWalkGenerator {
         // Check if any path exists leading to the given end point for each variant
         for variant in 0..dp.variants() {
             if dp.at(to_x, to_y, time_steps, variant).is_zero() {
-                return Err(WalkGenerationError::NoPathExists);
+                return Err(WalkerError::NoPathExists);
             }
         }
 
@@ -89,7 +89,7 @@ impl WalkGenerator for CorrelatedWalkGenerator {
         if short {
             String::from("cwg")
         } else {
-            String::from("Correlated Walk Generator")
+            String::from("Correlated Walker")
         }
     }
 }
