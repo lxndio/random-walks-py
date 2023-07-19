@@ -2,7 +2,9 @@ pub mod loader;
 pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
-use anyhow::{anyhow, Context};
+use crate::dp::{DynamicProgram, DynamicProgramType};
+use crate::walk_generator::{Walk, WalkGenerator};
+use anyhow::{anyhow, bail, Context};
 use num::Signed;
 use plotters::prelude::*;
 use point::{Coordinates, GCSPoint, Point, XYPoint};
@@ -298,13 +300,45 @@ impl Dataset {
         Ok(())
     }
 
+    pub fn rw_between(
+        &self,
+        dpt: &DynamicProgramType,
+        generator: Box<dyn WalkGenerator>,
+        from: usize,
+        to: usize,
+        time_steps: usize,
+    ) -> anyhow::Result<Walk> {
+        let from = &self.get(from).context("from index out of bounds.")?.point;
+        let to = &self.get(to).context("to index out of bounds.")?.point;
+
+        let Point::XY(from) = *from else {
+            bail!("Points have to be in XY coordinates.");
+        };
+        let Point::XY(to) = *to else {
+            bail!("Points have to be in XY coordinates.");
+        };
+
+        // Translate `to`, s.t. it still has the same relative position from `from`, under the
+        // condition that `from` is (0, 0)
+        let translated_to = to - from;
+
+        generator
+            .generate_path(
+                dpt,
+                translated_to.x as isize,
+                translated_to.y as isize,
+                time_steps,
+            )
+            .context("error while generating random walk path")
+    }
+
     /// Print all [`Datapoint`]s in the dataset with index in range [from, to).
     pub fn print(&self, from: Option<usize>, to: Option<usize>) {
         let from = from.unwrap_or(0);
         let to = to.unwrap_or(self.data.len());
 
         for i in from..to {
-            println!("{}", self.data[i].to_string());
+            println!("{}:\t{}", i, self.data[i].to_string());
         }
     }
 

@@ -1,4 +1,5 @@
 use num::Signed;
+use std::ops::{Add, Sub};
 
 pub trait Coordinates<T: Signed> {
     fn x(&self) -> T;
@@ -6,7 +7,7 @@ pub trait Coordinates<T: Signed> {
 }
 
 /// A 2d-point in geographic coordinate system (GCS).
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct GCSPoint {
     pub x: f64,
     pub y: f64,
@@ -31,6 +32,28 @@ impl From<(f64, f64)> for GCSPoint {
     }
 }
 
+impl Add for GCSPoint {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub for GCSPoint {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
 impl ToString for GCSPoint {
     fn to_string(&self) -> String {
         format!("({}, {})", self.x, self.y)
@@ -38,7 +61,7 @@ impl ToString for GCSPoint {
 }
 
 /// A 2d-point in XY coordinate system.
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct XYPoint {
     pub x: i64,
     pub y: i64,
@@ -59,6 +82,28 @@ impl From<(i64, i64)> for XYPoint {
         Self {
             x: value.0,
             y: value.1,
+        }
+    }
+}
+
+impl Add for XYPoint {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub for XYPoint {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
         }
     }
 }

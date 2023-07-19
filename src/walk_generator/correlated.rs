@@ -12,12 +12,12 @@ pub struct CorrelatedWalkGenerator;
 impl WalkGenerator for CorrelatedWalkGenerator {
     fn generate_path(
         &self,
-        dp: &DynamicProgramType,
+        dpt: &DynamicProgramType,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkGenerationError> {
-        let Multi(dp) = dp else {
+        let Multi(dp) = dpt else {
             return Err(WalkGenerationError::WrongDynamicProgramType);
         };
 

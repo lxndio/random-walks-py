@@ -3,13 +3,14 @@ pub mod standard;
 
 use crate::dp::DynamicProgramType;
 use std::ops::{Index, IndexMut};
+use thiserror::Error;
 
 pub type Walk = Vec<(isize, isize)>;
 
 pub trait WalkGenerator {
     fn generate_path(
         &self,
-        dp: &DynamicProgramType,
+        dpt: &DynamicProgramType,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
@@ -18,8 +19,11 @@ pub trait WalkGenerator {
     fn name(&self, short: bool) -> String;
 }
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum WalkGenerationError {
+    #[error("wrong type of dynamic program given")]
     WrongDynamicProgramType,
+
+    #[error("no path exists")]
     NoPathExists,
 }

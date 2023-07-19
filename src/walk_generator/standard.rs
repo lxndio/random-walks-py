@@ -11,12 +11,12 @@ pub struct StandardWalkGenerator;
 impl WalkGenerator for StandardWalkGenerator {
     fn generate_path(
         &self,
-        dp: &DynamicProgramType,
+        dpt: &DynamicProgramType,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkGenerationError> {
-        let Simple(dp) = dp else {
+        let Simple(dp) = dpt else {
             return Err(WalkGenerationError::WrongDynamicProgramType);
         };
 
