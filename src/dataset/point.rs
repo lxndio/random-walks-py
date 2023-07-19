@@ -5,6 +5,7 @@ pub trait Coordinates<T: Signed> {
     fn y(&self) -> T;
 }
 
+/// A 2d-point in geographic coordinate system (GCS).
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct GCSPoint {
     pub x: f64,
@@ -36,6 +37,7 @@ impl ToString for GCSPoint {
     }
 }
 
+/// A 2d-point in XY coordinate system.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct XYPoint {
     pub x: i64,
@@ -67,9 +69,13 @@ impl ToString for XYPoint {
     }
 }
 
+/// A 2d-point in either GCS or XY coordinates.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Point {
+    /// A 2d-point in geographic coordinate system (GCS).
     GCS(GCSPoint),
+
+    /// A 2d-point in XY coordinate system.
     XY(XYPoint),
 }
 

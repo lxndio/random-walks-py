@@ -20,10 +20,14 @@ pub enum ColumnAction {
     Discard,
 }
 
+/// The type of coordinates used in a dataset.
 #[derive(Default, Copy, Clone, PartialEq)]
 pub enum CoordinateType {
+    /// Geographic coordinate system (GCS) coordinates.
     #[default]
     GCS,
+
+    /// XY coordinates.
     XY,
 }
 

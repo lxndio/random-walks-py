@@ -10,13 +10,13 @@ use rand::Rng;
 use std::collections::HashMap;
 
 /// A filter that can be applied to a [`Dataset`] by calling [`Dataset::filter`].
-///
-/// - `ByMetadata` filters the dataset by metadata key-value pairs and only keeps points
-///   where all metadata pairs match.
-/// - `ByCoordinates` filters the dataset by coordinates and only keeps points where the
-///   coordinates are in the range `[from, to]`.
 pub enum DatasetFilter {
+    /// Filter the dataset by metadata key-value pairs and only keeps points
+    /// where all metadata pairs match.
     ByMetadata(Vec<(String, String)>),
+
+    /// Filter the dataset by coordinates and only keeps points where the
+    /// coordinates are in the range `[from, to]`.
     ByCoordinates(Point, Point),
 }
 
