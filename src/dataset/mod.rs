@@ -9,11 +9,18 @@ use point::{Coordinates, GCSPoint, Point, XYPoint};
 use rand::Rng;
 use std::collections::HashMap;
 
+/// A filter that can be applied to a [`Dataset`] by calling [`Dataset::filter`].
+///
+/// - `ByMetadata` filters the dataset by metadata key-value pairs and only keeps points
+///   where all metadata pairs match.
+/// - `ByCoordinates` filters the dataset by coordinates and only keeps points where the
+///   coordinates are in the range `[from, to]`.
 pub enum DatasetFilter {
     ByMetadata(Vec<(String, String)>),
     ByCoordinates(Point, Point),
 }
 
+/// A point in a dataset consisting of a [`Point`] and a set of metadata key-value pairs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Datapoint {
     point: Point,
@@ -26,12 +33,16 @@ impl ToString for Datapoint {
     }
 }
 
+/// A dataset storing a set of 2d-points with associated metadata.
 pub struct Dataset {
     data: Vec<Datapoint>,
     coordinate_type: CoordinateType,
 }
 
 impl Dataset {
+    /// Create a new empty dataset.
+    ///
+    /// The `coordinate_type` parameter specifies the [`CoordinateType`] of the dataset.
     pub fn new(coordinate_type: CoordinateType) -> Self {
         Self {
             data: Vec::new(),
@@ -39,6 +50,7 @@ impl Dataset {
         }
     }
 
+    /// Create a dataset filled with data that is loaded by the given [`DatasetLoader`].
     pub fn from_loader(loader: impl DatasetLoader) -> anyhow::Result<Self> {
         let data = loader.load()?;
 
@@ -48,14 +60,19 @@ impl Dataset {
         })
     }
 
+    /// Return the number of [`Datapoint`]s in the dataset.
     pub fn len(&self) -> usize {
         self.data.len()
     }
 
+    /// Add a [`Datapoint`] to the dataset.
     pub fn push(&mut self, datapoint: Datapoint) {
         self.data.push(datapoint);
     }
 
+    /// Return a reference to the [`Datapoint`] at the given index in the dataset.
+    ///
+    /// Returns `None` if the index is out of bounds.
     pub fn get(&self, index: usize) -> Option<&Datapoint> {
         self.data.get(index)
     }
@@ -281,6 +298,7 @@ impl Dataset {
         Ok(())
     }
 
+    /// Print all [`Datapoint`]s in the dataset with index in range [from, to).
     pub fn print(&self, from: Option<usize>, to: Option<usize>) {
         let from = from.unwrap_or(0);
         let to = to.unwrap_or(self.data.len());
@@ -290,7 +308,12 @@ impl Dataset {
         }
     }
 
-    // TODO implement color_by
+    /// Plot all [`Datapoint`]s in the dataset with index in range [from, to).
+    ///
+    /// Saves the plot to the given `path`.
+    ///
+    /// If `color_by` is `Some`, the points will be colored differently for each value of the
+    /// given metadata key.
     pub fn plot(
         &self,
         path: String,
