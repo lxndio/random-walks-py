@@ -396,7 +396,7 @@ impl Dataset {
 mod tests {
     use crate::dataset::loader::CoordinateType;
     use crate::dataset::point::{Point, XYPoint};
-    use crate::dataset::{Datapoint, Dataset};
+    use crate::dataset::{Datapoint, Dataset, DatasetFilter};
     use std::collections::HashMap;
 
     #[test]
@@ -421,6 +421,77 @@ mod tests {
         dataset.keep(Some(100), Some(200));
 
         assert!(keep_dataset
+            .data
+            .iter()
+            .all(|item| dataset.data.contains(item)));
+    }
+
+    #[test]
+    fn test_dataset_filter_metadata() {
+        let mut dataset = Dataset::new(CoordinateType::XY);
+        let mut filtered_dataset = Dataset::new(CoordinateType::XY);
+
+        for i in 0..500 {
+            dataset.push(Datapoint {
+                point: Point::XY(XYPoint { x: i, y: i }),
+                metadata: HashMap::new(),
+            });
+        }
+
+        let mut metadata = HashMap::new();
+        metadata.insert("test".into(), "test".into());
+
+        for i in 0..500 {
+            dataset.push(Datapoint {
+                point: Point::XY(XYPoint { x: i, y: i }),
+                metadata: metadata.clone(),
+            });
+
+            filtered_dataset.push(Datapoint {
+                point: Point::XY(XYPoint { x: i, y: i }),
+                metadata: metadata.clone(),
+            });
+        }
+
+        let filter = DatasetFilter::ByMetadata(vec![("test".into(), "test".into())]);
+        let res = dataset.filter(vec![filter]);
+
+        assert!(res.is_ok());
+
+        assert!(filtered_dataset
+            .data
+            .iter()
+            .all(|item| dataset.data.contains(item)));
+    }
+
+    #[test]
+    fn test_dataset_filter_coordinates() {
+        let mut dataset = Dataset::new(CoordinateType::XY);
+        let mut filtered_dataset = Dataset::new(CoordinateType::XY);
+
+        for i in 0..1000 {
+            dataset.push(Datapoint {
+                point: Point::XY(XYPoint { x: i, y: i }),
+                metadata: HashMap::new(),
+            });
+
+            if i >= 500 {
+                filtered_dataset.push(Datapoint {
+                    point: Point::XY(XYPoint { x: i, y: i }),
+                    metadata: HashMap::new(),
+                });
+            }
+        }
+
+        let filter = DatasetFilter::ByCoordinates(
+            Point::XY(XYPoint { x: 500, y: 500 }),
+            Point::XY(XYPoint { x: 1000, y: 1000 }),
+        );
+        let res = dataset.filter(vec![filter]);
+
+        assert!(res.is_ok());
+
+        assert!(filtered_dataset
             .data
             .iter()
             .all(|item| dataset.data.contains(item)));
