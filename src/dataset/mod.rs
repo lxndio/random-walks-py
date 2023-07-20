@@ -25,8 +25,8 @@ pub enum DatasetFilter {
 /// A point in a dataset consisting of a [`Point`] and a set of metadata key-value pairs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Datapoint {
-    point: Point,
-    metadata: HashMap<String, String>,
+    pub point: Point,
+    pub metadata: HashMap<String, String>,
 }
 
 impl ToString for Datapoint {
@@ -77,6 +77,11 @@ impl Dataset {
     /// Returns `None` if the index is out of bounds.
     pub fn get(&self, index: usize) -> Option<&Datapoint> {
         self.data.get(index)
+    }
+
+    /// Return an iterator over the [`Datapoint`]s in the dataset.
+    pub fn iter(&self) -> std::slice::Iter<'_, Datapoint> {
+        self.data.iter()
     }
 
     /// Remove all datapoints from the dataset, keeping only the datapoints in the range
