@@ -322,14 +322,20 @@ impl Dataset {
         // condition that `from` is (0, 0)
         let translated_to = to - from;
 
-        generator
+        let mut walk = generator
             .generate_path(
                 dpt,
                 translated_to.x as isize,
                 translated_to.y as isize,
                 time_steps,
             )
-            .context("error while generating random walk path")
+            .context("error while generating random walk path")?;
+
+        // Translate all coordinates in walk back to original coordinates
+        Ok(walk
+            .iter()
+            .map(|(x, y)| (x + from.x() as isize, y + from.y() as isize))
+            .collect())
     }
 
     /// Print all [`Datapoint`]s in the dataset with index in range [from, to).
