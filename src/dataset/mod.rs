@@ -13,9 +13,9 @@ use std::collections::HashMap;
 
 /// A filter that can be applied to a [`Dataset`] by calling [`Dataset::filter`].
 pub enum DatasetFilter {
-    /// Filter the dataset by metadata key-value pairs and only keeps points
-    /// where all metadata pairs match.
-    ByMetadata(Vec<(String, String)>),
+    /// Filter the dataset by a given metadata key-value pair and only keeps points
+    /// which have the corresponding metadata entry.
+    ByMetadata(String, String),
 
     /// Filter the dataset by coordinates and only keeps points where the
     /// coordinates are in the range `[from, to]`.
@@ -104,12 +104,10 @@ impl Dataset {
 
             for filter in filters.iter() {
                 match filter {
-                    DatasetFilter::ByMetadata(metadata) => {
-                        for (key, value) in metadata.iter() {
-                            if datapoint.metadata.get(key) != Some(value) {
-                                keep = false;
-                                break;
-                            }
+                    DatasetFilter::ByMetadata(key, value) => {
+                        if datapoint.metadata.get(key) != Some(value) {
+                            keep = false;
+                            break;
                         }
                     }
                     DatasetFilter::ByCoordinates(from, to) => match self.coordinate_type {
@@ -303,7 +301,7 @@ impl Dataset {
     pub fn rw_between(
         &self,
         dpt: &DynamicProgramType,
-        generator: Box<dyn Walker>,
+        walker: Box<dyn Walker>,
         from: usize,
         to: usize,
         time_steps: usize,
@@ -322,7 +320,7 @@ impl Dataset {
         // condition that `from` is (0, 0)
         let translated_to = to - from;
 
-        let mut walk = generator
+        let mut walk = walker
             .generate_path(
                 dpt,
                 translated_to.x as isize,
@@ -516,7 +514,7 @@ mod tests {
             });
         }
 
-        let filter = DatasetFilter::ByMetadata(vec![("test".into(), "test".into())]);
+        let filter = DatasetFilter::ByMetadata("test".into(), "test".into());
         let res = dataset.filter(vec![filter]);
 
         assert!(res.is_ok());
