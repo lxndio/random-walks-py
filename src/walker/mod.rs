@@ -16,6 +16,23 @@ pub trait Walker {
         time_steps: usize,
     ) -> Result<Walk, WalkerError>;
 
+    fn generate_paths(
+        &self,
+        dpt: &DynamicProgramType,
+        qty: usize,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Vec<Walk>, WalkerError> {
+        let mut paths = Vec::new();
+
+        for _ in 0..qty {
+            paths.push(self.generate_path(dpt, to_x, to_y, time_steps)?);
+        }
+
+        Ok(paths)
+    }
+
     fn name(&self, short: bool) -> String;
 }
 
