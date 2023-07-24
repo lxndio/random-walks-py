@@ -28,7 +28,7 @@ pub trait DynamicProgram {
     fn print(&self, t: usize);
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct DynamicProgramOptions {
     pub time_limit: usize,
     pub kernel: Option<Kernel>,
