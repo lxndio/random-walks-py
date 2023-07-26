@@ -1,6 +1,8 @@
 use crate::dp::{DynamicProgram, DynamicProgramOptions};
 use crate::kernel::Kernel;
+use anyhow::Context;
 use num::Zero;
+use plotters::prelude::*;
 use std::fmt::Debug;
 use std::time::Instant;
 
@@ -89,6 +91,64 @@ impl DynamicProgram for SimpleDynamicProgram {
         let duration = start.elapsed();
 
         println!("Computation took {:?}", duration);
+    }
+
+    fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
+        let (limit_neg, limit_pos) = self.limits();
+        let coordinate_range = limit_neg as i32..(limit_pos + 1) as i32;
+
+        let root = BitMapBackend::new(&path, (1000, 1000)).into_drawing_area();
+        root.fill(&WHITE).unwrap();
+        let root = root.margin(10, 10, 10, 10);
+
+        let mut chart = ChartBuilder::on(&root)
+            .caption(format!("Heatmap for t = {}", t), ("sans-serif", 20))
+            .x_label_area_size(40)
+            .y_label_area_size(40)
+            .build_cartesian_2d(coordinate_range.clone(), coordinate_range.clone())?;
+
+        chart.configure_mesh().draw()?;
+
+        let iter = self.table[t]
+            .iter()
+            .enumerate()
+            .map(|(x, l)| {
+                l.iter().enumerate().map(move |(y, v)| {
+                    (x as i32 - limit_pos as i32, y as i32 - limit_pos as i32, v)
+                })
+            })
+            .flatten();
+
+        let min = iter
+            .clone()
+            .min_by(|(_, _, v1), (_, _, v2)| v1.total_cmp(v2))
+            .context("Could not compute minimum value")?
+            .2;
+        let max = iter
+            .clone()
+            .max_by(|(_, _, v1), (_, _, v2)| v1.total_cmp(v2))
+            .context("Could not compute minimum value")?
+            .2;
+
+        chart.draw_series(PointSeries::of_element(iter, 1, &BLACK, &|c, s, st| {
+            Rectangle::new(
+                [(c.0, c.1), (c.0 + s, c.1 + s)],
+                HSLColor(
+                    (*c.2 - min) / (max - min),
+                    0.7,
+                    if c.2.is_zero() {
+                        0.0
+                    } else {
+                        ((*c.2 - min).ln_1p() / (max - min).ln_1p()).clamp(0.1, 1.0)
+                    },
+                )
+                .filled(),
+            )
+        }))?;
+
+        root.present()?;
+
+        Ok(())
     }
 
     fn print(&self, t: usize) {

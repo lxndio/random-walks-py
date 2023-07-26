@@ -101,6 +101,10 @@ impl DynamicProgram for MultiDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
+    fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
+        todo!()
+    }
+
     fn print(&self, t: usize) {
         for variant in 0..self.kernels.len() {
             for y in 0..2 * self.time_limit + 1 {

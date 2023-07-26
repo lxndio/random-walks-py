@@ -25,6 +25,8 @@ pub trait DynamicProgram {
 
     fn compute(&mut self);
 
+    fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()>;
+
     fn print(&self, t: usize);
 }
 
