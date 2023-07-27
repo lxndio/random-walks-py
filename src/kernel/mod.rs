@@ -1,4 +1,6 @@
 use crate::kernel::generator::KernelGenerator;
+use anyhow::bail;
+use num::integer::Roots;
 use std::fmt::{Debug, Formatter, Write};
 use std::ops::{Index, IndexMut};
 use strum::EnumIter;
@@ -10,11 +12,22 @@ pub mod simple_rw;
 
 #[derive(Clone)]
 pub struct Kernel {
-    probabilities: Vec<Vec<f64>>,
+    pub probabilities: Vec<Vec<f64>>,
     name: (String, String),
 }
 
 impl Kernel {
+    pub fn try_new(size: usize, name: (String, String)) -> anyhow::Result<Self> {
+        if size % 2 == 0 {
+            bail!("size must be odd");
+        }
+
+        Ok(Self {
+            probabilities: vec![vec![0.0; size]; size],
+            name,
+        })
+    }
+
     pub fn from_generator(generator: impl KernelGenerator) -> Result<Kernel, String> {
         let mut kernel = Kernel {
             probabilities: Vec::new(),
@@ -41,13 +54,13 @@ impl Kernel {
         Ok(kernels)
     }
 
-    pub fn initialize(&mut self, size: usize) -> Result<(), String> {
+    pub fn initialize(&mut self, size: usize) -> anyhow::Result<()> {
         if size % 2 == 1 {
             self.probabilities = vec![vec![0.0; size]; size];
 
             Ok(())
         } else {
-            Err("Size must be odd.".into())
+            bail!("size must be odd");
         }
     }
 
@@ -123,6 +136,23 @@ impl Debug for Kernel {
 impl PartialEq for Kernel {
     fn eq(&self, other: &Self) -> bool {
         self.probabilities == other.probabilities
+    }
+}
+
+#[macro_export]
+macro_rules! kernel {
+    ($($x:expr),+) => {
+        let probs = vec![$($x),*];
+        let size = (probs.len() as f64).sqrt() as usize;
+
+        if size.pow(2) != probs.len() {
+            panic!("kernel! needs n^2 elements to create a kernel of size n");
+        }
+
+        let mut kernel = Kernel::try_new(size, ("ck".into(), "Custom Kernel".into())).unwrap();
+        kernel.probabilities = probs.chunks_exact(size).map(|x| x.to_vec()).collect();
+
+        kernel
     }
 }
 
