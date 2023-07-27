@@ -43,8 +43,10 @@ impl SimpleDynamicProgram {
                 }
 
                 // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
-                let kernel_x = x - i;
-                let kernel_y = y - j;
+                // let kernel_x = x - i;
+                // let kernel_y = y - j;
+                let kernel_x = i - x;
+                let kernel_y = j - y;
 
                 sum += self.at(i, j, t - 1) * self.kernel.at(kernel_x, kernel_y);
             }
