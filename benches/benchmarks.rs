@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
 use randomwalks_lib::dp::simple::SimpleDynamicProgram;
-use randomwalks_lib::dp::{DynamicProgram, DynamicProgramOptions};
+use randomwalks_lib::dp::{DynamicProgramOptions, DynamicPrograms};
 use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
 use randomwalks_lib::kernel::Kernel;
 

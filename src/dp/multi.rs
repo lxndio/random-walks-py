@@ -1,12 +1,12 @@
-use crate::dp::{DynamicProgram, DynamicProgramOptions};
+use crate::dp::DynamicPrograms;
 use crate::kernel::Kernel;
 use num::Zero;
 use std::time::Instant;
 
 pub struct MultiDynamicProgram {
-    table: Vec<Vec<Vec<Vec<f64>>>>,
-    time_limit: usize,
-    kernels: Vec<Kernel>,
+    pub(crate) table: Vec<Vec<Vec<Vec<f64>>>>,
+    pub(crate) time_limit: usize,
+    pub(crate) kernels: Vec<Kernel>,
 }
 
 impl MultiDynamicProgram {
@@ -57,24 +57,7 @@ impl MultiDynamicProgram {
     }
 }
 
-impl DynamicProgram for MultiDynamicProgram {
-    fn new(options: DynamicProgramOptions) -> Self {
-        let time_limit = options.time_limit;
-        let kernels = options.kernels.expect("kernels option not set.");
-
-        Self {
-            table: vec![
-                vec![
-                    vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
-                    kernels.len()
-                ];
-                time_limit + 1
-            ],
-            time_limit,
-            kernels,
-        }
-    }
-
+impl DynamicPrograms for MultiDynamicProgram {
     fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
     }

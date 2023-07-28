@@ -1,4 +1,4 @@
-use crate::dp::{DynamicProgram, DynamicProgramOptions};
+use crate::dp::DynamicPrograms;
 use crate::kernel::Kernel;
 use anyhow::Context;
 use num::Zero;
@@ -7,9 +7,9 @@ use std::fmt::Debug;
 use std::time::Instant;
 
 pub struct SimpleDynamicProgram {
-    table: Vec<Vec<Vec<f64>>>,
-    time_limit: usize,
-    kernel: Kernel,
+    pub(crate) table: Vec<Vec<Vec<f64>>>,
+    pub(crate) time_limit: usize,
+    pub(crate) kernel: Kernel,
 }
 
 impl SimpleDynamicProgram {
@@ -54,21 +54,7 @@ impl SimpleDynamicProgram {
     }
 }
 
-impl DynamicProgram for SimpleDynamicProgram {
-    fn new(options: DynamicProgramOptions) -> Self {
-        let time_limit = options.time_limit;
-        let kernel = options.kernel.expect("kernel option not set.");
-
-        Self {
-            table: vec![
-                vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
-                time_limit + 1
-            ],
-            time_limit,
-            kernel,
-        }
-    }
-
+impl DynamicPrograms for SimpleDynamicProgram {
     fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
     }

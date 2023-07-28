@@ -1,7 +1,7 @@
 pub mod correlated;
 pub mod standard;
 
-use crate::dp::DynamicProgramType;
+use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
 use std::ops::{Index, IndexMut};
 use thiserror::Error;
 
@@ -10,7 +10,7 @@ pub type Walk = Vec<(isize, isize)>;
 pub trait Walker {
     fn generate_path(
         &self,
-        dpt: &DynamicProgramType,
+        dp: &DynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
@@ -18,7 +18,7 @@ pub trait Walker {
 
     fn generate_paths(
         &self,
-        dpt: &DynamicProgramType,
+        dp: &DynamicProgram,
         qty: usize,
         to_x: isize,
         to_y: isize,
@@ -27,7 +27,7 @@ pub trait Walker {
         let mut paths = Vec::new();
 
         for _ in 0..qty {
-            paths.push(self.generate_path(dpt, to_x, to_y, time_steps)?);
+            paths.push(self.generate_path(dp, to_x, to_y, time_steps)?);
         }
 
         Ok(paths)

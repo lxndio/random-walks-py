@@ -2,7 +2,7 @@ pub mod loader;
 pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
-use crate::dp::{DynamicProgram, DynamicProgramType};
+use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
 use crate::walker::{Walk, Walker};
 use anyhow::{anyhow, bail, Context};
 use num::Signed;
@@ -305,7 +305,7 @@ impl Dataset {
 
     pub fn rw_between(
         &self,
-        dpt: &DynamicProgramType,
+        dp: &DynamicProgram,
         walker: Box<dyn Walker>,
         from: usize,
         to: usize,
@@ -327,7 +327,7 @@ impl Dataset {
 
         let mut walk = walker
             .generate_path(
-                dpt,
+                &dp,
                 translated_to.x as isize,
                 translated_to.y as isize,
                 time_steps,

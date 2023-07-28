@@ -1,6 +1,6 @@
 use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgramType::Simple;
-use crate::dp::{DynamicProgram, DynamicProgramType};
+use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
 use crate::kernel::Direction;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
@@ -13,12 +13,12 @@ pub struct StandardWalker;
 impl Walker for StandardWalker {
     fn generate_path(
         &self,
-        dpt: &DynamicProgramType,
+        dp: &DynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        let Simple(dp) = dpt else {
+        let DynamicProgram::Simple(dp) = dp else {
             return Err(WalkerError::WrongDynamicProgramType);
         };
 

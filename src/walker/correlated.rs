@@ -1,6 +1,6 @@
 use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgramType::Multi;
-use crate::dp::{DynamicProgram, DynamicProgramType};
+use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use rand::distributions::WeightedIndex;
@@ -12,12 +12,12 @@ pub struct CorrelatedWalker;
 impl Walker for CorrelatedWalker {
     fn generate_path(
         &self,
-        dpt: &DynamicProgramType,
+        dp: &DynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        let Multi(dp) = dpt else {
+        let DynamicProgram::Multi(dp) = dp else {
             return Err(WalkerError::WrongDynamicProgramType);
         };
 

@@ -10,17 +10,15 @@
 //! dp.count_paths();
 //! ```
 
+use crate::dp::multi::MultiDynamicProgram;
+use crate::dp::simple::SimpleDynamicProgram;
+
+pub mod builder;
 pub mod multi;
 pub mod simple;
 pub mod store;
 
-use crate::dp::multi::MultiDynamicProgram;
-use crate::dp::simple::SimpleDynamicProgram;
-use crate::kernel::Kernel;
-
-pub trait DynamicProgram {
-    fn new(options: DynamicProgramOptions) -> Self;
-
+pub trait DynamicPrograms {
     fn limits(&self) -> (isize, isize);
 
     fn compute(&mut self);
@@ -30,14 +28,48 @@ pub trait DynamicProgram {
     fn print(&self, t: usize);
 }
 
-#[derive(Default, Clone)]
-pub struct DynamicProgramOptions {
-    pub time_limit: usize,
-    pub kernel: Option<Kernel>,
-    pub kernels: Option<Vec<Kernel>>,
-}
-
-pub enum DynamicProgramType {
+pub enum DynamicProgram {
     Simple(SimpleDynamicProgram),
     Multi(MultiDynamicProgram),
+}
+
+impl DynamicProgram {
+    fn unwrap(&self) -> &dyn DynamicPrograms {
+        match self {
+            DynamicProgram::Simple(simple) => simple,
+            DynamicProgram::Multi(multi) => multi,
+        }
+    }
+
+    fn unwrap_mut(&mut self) -> &mut dyn DynamicPrograms {
+        match self {
+            DynamicProgram::Simple(simple) => simple,
+            DynamicProgram::Multi(multi) => multi,
+        }
+    }
+}
+
+impl DynamicPrograms for DynamicProgram {
+    fn limits(&self) -> (isize, isize) {
+        self.unwrap().limits()
+    }
+
+    fn compute(&mut self) {
+        self.unwrap_mut().compute()
+    }
+
+    fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
+        self.unwrap().heatmap(path, t)
+    }
+
+    fn print(&self, t: usize) {
+        self.unwrap().print(t)
+    }
+}
+
+#[derive(Default)]
+pub enum DynamicProgramType {
+    #[default]
+    Simple,
+    Multi,
 }
