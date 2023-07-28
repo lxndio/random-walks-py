@@ -1,6 +1,4 @@
-use crate::dp::simple::SimpleDynamicProgram;
-use crate::dp::DynamicProgramType::Multi;
-use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
+use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use rand::distributions::WeightedIndex;
@@ -45,7 +43,7 @@ impl Walker for CorrelatedWalker {
             _ => (),
         }
 
-        let mut last_direction = direction;
+        let last_direction = direction;
 
         for t in (1..time_steps).rev() {
             path.push((x, y));

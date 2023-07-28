@@ -57,13 +57,13 @@ impl WalkAnalyzer {
 
         let mut walk = self.walk.clone();
         let (mut last_x, mut last_y) = walk[0];
-        let mut last_direction = Direction::Stay;
+        let last_direction = Direction::Stay;
         walk.remove(0);
 
         let mut direction_counts = Directions::<usize>::new();
         let mut persistence_counts = Directions::<usize>::new();
 
-        for (t, (x, y)) in walk.iter().enumerate() {
+        for (_t, (x, y)) in walk.iter().enumerate() {
             let dx = x - last_x;
             let dy = y - last_y;
 

@@ -1,6 +1,5 @@
 use crate::kernel::generator::KernelGenerator;
 use anyhow::bail;
-use num::integer::Roots;
 use std::fmt::{Debug, Formatter, Write};
 use std::ops::{Index, IndexMut};
 use strum::EnumIter;
@@ -29,7 +28,7 @@ impl Kernel {
     }
 
     pub fn from_generator(generator: impl KernelGenerator) -> Result<Kernel, String> {
-        let mut kernel = Kernel {
+        let kernel = Kernel {
             probabilities: Vec::new(),
             name: generator.name(),
         };
@@ -42,7 +41,7 @@ impl Kernel {
     }
 
     pub fn multiple_from_generator(generator: impl KernelGenerator) -> Result<Vec<Kernel>, String> {
-        let mut kernel = Kernel {
+        let kernel = Kernel {
             probabilities: Vec::new(),
             name: generator.name(),
         };

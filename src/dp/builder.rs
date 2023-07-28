@@ -1,6 +1,6 @@
 use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::simple::SimpleDynamicProgram;
-use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
+use crate::dp::{DynamicProgram, DynamicProgramType};
 use crate::kernel::Kernel;
 use num::Zero;
 use thiserror::Error;

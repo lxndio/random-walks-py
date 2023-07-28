@@ -2,10 +2,9 @@ pub mod loader;
 pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
-use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
+use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker};
 use anyhow::{anyhow, bail, Context};
-use num::Signed;
 use plotters::prelude::*;
 use point::{Coordinates, GCSPoint, Point, XYPoint};
 use rand::Rng;
@@ -325,7 +324,7 @@ impl Dataset {
         // condition that `from` is (0, 0)
         let translated_to = to - from;
 
-        let mut walk = walker
+        let walk = walker
             .generate_path(
                 &dp,
                 translated_to.x as isize,

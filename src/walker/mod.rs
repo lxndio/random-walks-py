@@ -1,8 +1,7 @@
 pub mod correlated;
 pub mod standard;
 
-use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
-use std::ops::{Index, IndexMut};
+use crate::dp::DynamicProgram;
 use thiserror::Error;
 
 pub type Walk = Vec<(isize, isize)>;

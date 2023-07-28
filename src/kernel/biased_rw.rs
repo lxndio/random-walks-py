@@ -49,7 +49,6 @@ impl KernelGenerator for BiasedRwGenerator {
 
 #[cfg(test)]
 mod tests {
-    use crate::dp::simple::SimpleDynamicProgram;
     use crate::kernel::biased_rw::BiasedRwGenerator;
     use crate::kernel::{Direction, Kernel};
 

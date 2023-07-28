@@ -1,12 +1,8 @@
-use crate::dp::simple::SimpleDynamicProgram;
-use crate::dp::DynamicProgramType::Simple;
-use crate::dp::{DynamicProgram, DynamicProgramType, DynamicPrograms};
-use crate::kernel::Direction;
+use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
-use strum::IntoEnumIterator;
 
 pub struct StandardWalker;
 

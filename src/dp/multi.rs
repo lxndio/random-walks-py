@@ -1,6 +1,5 @@
 use crate::dp::DynamicPrograms;
 use crate::kernel::Kernel;
-use num::Zero;
 use std::time::Instant;
 
 pub struct MultiDynamicProgram {
@@ -84,7 +83,7 @@ impl DynamicPrograms for MultiDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
-    fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
+    fn heatmap(&self, _path: String, _t: usize) -> anyhow::Result<()> {
         todo!()
     }
 

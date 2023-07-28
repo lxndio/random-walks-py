@@ -116,7 +116,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
             .context("Could not compute minimum value")?
             .2;
 
-        chart.draw_series(PointSeries::of_element(iter, 1, &BLACK, &|c, s, st| {
+        chart.draw_series(PointSeries::of_element(iter, 1, &BLACK, &|c, s, _st| {
             Rectangle::new(
                 [(c.0, c.1), (c.0 + s, c.1 + s)],
                 HSLColor(
