@@ -44,8 +44,9 @@ impl MultiDynamicProgram {
                         continue;
                     }
 
-                    let kernel_x = i - x;
-                    let kernel_y = j - y;
+                    // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
+                    let kernel_x = x - i;
+                    let kernel_y = y - j;
 
                     sum += self.at(i, j, t - 1, variant) * kernel.at(kernel_x, kernel_y);
                 }

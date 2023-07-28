@@ -1,10 +1,12 @@
 use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgramType::Simple;
 use crate::dp::{DynamicProgram, DynamicProgramType};
+use crate::kernel::Direction;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
+use strum::IntoEnumIterator;
 
 pub struct StandardWalker;
 
@@ -33,22 +35,23 @@ impl Walker for StandardWalker {
             path.push((x, y));
 
             let prev_probs = [
-                dp.at(x, y, t - 1),
-                dp.at(x - 1, y, t - 1),
-                dp.at(x, y - 1, t - 1),
-                dp.at(x + 1, y, t - 1),
-                dp.at(x, y + 1, t - 1),
+                dp.at(x, y, t - 1),     // Stay
+                dp.at(x - 1, y, t - 1), // West
+                dp.at(x, y - 1, t - 1), // North
+                dp.at(x + 1, y, t - 1), // East
+                dp.at(x, y + 1, t - 1), // South
             ];
 
             let dist = WeightedIndex::new(&prev_probs).unwrap();
             let direction = dist.sample(&mut rng);
 
             match direction {
-                1 => x -= 1,
-                2 => y -= 1,
-                3 => x += 1,
-                4 => y += 1,
-                _ => (),
+                0 => (),     // Stay
+                1 => x -= 1, // West
+                2 => y -= 1, // North
+                3 => x += 1, // East
+                4 => y += 1, // South
+                _ => unreachable!("Other directions should not be chosen from the distribution"),
             }
         }
 
