@@ -1,3 +1,4 @@
+use crate::dataset::point::XYPoint;
 use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::{DynamicProgram, DynamicProgramType};
@@ -21,6 +22,8 @@ pub enum DynamicProgramBuilderError {
     MultipleKernelsForSingle,
     #[error("field probabilities must be of same size as DP table")]
     WrongSizeOfFieldProbabilities,
+    #[error("barriers must be inside the time limit range")]
+    BarrierOutOfRange,
 }
 
 #[derive(Default)]
@@ -30,6 +33,7 @@ pub struct DynamicProgramBuilder {
     kernel: Option<Kernel>,
     kernels: Option<Vec<Kernel>>,
     field_probabilities: Option<Vec<Vec<f64>>>,
+    barriers: Vec<XYPoint>,
 }
 
 impl DynamicProgramBuilder {
@@ -75,6 +79,22 @@ impl DynamicProgramBuilder {
         self
     }
 
+    pub fn add_single_barrier(mut self, at: XYPoint) -> Self {
+        self.barriers.push(at);
+
+        self
+    }
+
+    pub fn add_rect_barrier(mut self, from: XYPoint, to: XYPoint) -> Self {
+        for x in from.x..=to.x {
+            for y in from.y..=to.y {
+                self.barriers.push(XYPoint { x, y })
+            }
+        }
+
+        self
+    }
+
     pub fn build(self) -> Result<DynamicProgram, DynamicProgramBuilderError> {
         let Some(time_limit) = self.time_limit else {
             return Err(DynamicProgramBuilderError::NoTimeLimitSet);
@@ -82,6 +102,26 @@ impl DynamicProgramBuilder {
         let Some(dp_type) = self.dp_type else {
             return Err(DynamicProgramBuilderError::NoTypeSet);
         };
+
+        let mut field_probabilities = match self.field_probabilities {
+            Some(fp) => fp,
+            None => vec![vec![1.0; 2 * time_limit + 1]; 2 * time_limit + 1],
+        };
+
+        for (x, y) in self.barriers.iter().map(|p| <(i64, i64)>::from(*p)) {
+            if x < -(time_limit as i64)
+                || x > time_limit as i64
+                || y < -(time_limit as i64)
+                || y > time_limit as i64
+            {
+                return Err(DynamicProgramBuilderError::BarrierOutOfRange);
+            }
+
+            let x = (time_limit as i64 + x) as usize;
+            let y = (time_limit as i64 + y) as usize;
+
+            field_probabilities[x][y] = 0.0;
+        }
 
         match dp_type {
             DynamicProgramType::Simple => {
@@ -100,6 +140,7 @@ impl DynamicProgramBuilder {
                     ],
                     time_limit,
                     kernel,
+                    field_probabilities,
                 }))
             }
             DynamicProgramType::Multi => {
@@ -121,6 +162,7 @@ impl DynamicProgramBuilder {
                     ],
                     time_limit,
                     kernels,
+                    field_probabilities,
                 }))
             }
         }

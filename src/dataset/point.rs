@@ -32,6 +32,12 @@ impl From<(f64, f64)> for GCSPoint {
     }
 }
 
+impl From<GCSPoint> for (f64, f64) {
+    fn from(value: GCSPoint) -> Self {
+        (value.x, value.y)
+    }
+}
+
 impl Add for GCSPoint {
     type Output = Self;
 
@@ -86,6 +92,12 @@ impl From<(i64, i64)> for XYPoint {
     }
 }
 
+impl From<XYPoint> for (i64, i64) {
+    fn from(value: XYPoint) -> Self {
+        (value.x, value.y)
+    }
+}
+
 impl Add for XYPoint {
     type Output = Self;
 
@@ -112,6 +124,13 @@ impl ToString for XYPoint {
     fn to_string(&self) -> String {
         format!("({}, {})", self.x, self.y)
     }
+}
+
+#[macro_export]
+macro_rules! xy {
+    ($x:expr, $y:expr) => {
+        XYPoint { x: $x, y: $y }
+    };
 }
 
 /// A 2d-point in either GCS or XY coordinates.

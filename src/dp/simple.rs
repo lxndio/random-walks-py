@@ -10,6 +10,7 @@ pub struct SimpleDynamicProgram {
     pub(crate) table: Vec<Vec<Vec<f64>>>,
     pub(crate) time_limit: usize,
     pub(crate) kernel: Kernel,
+    pub(crate) field_probabilities: Vec<Vec<f64>>,
 }
 
 impl SimpleDynamicProgram {
@@ -17,7 +18,7 @@ impl SimpleDynamicProgram {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
 
-        self.table[t][x][y].clone()
+        self.table[t][x][y]
     }
 
     pub fn set(&mut self, x: isize, y: isize, t: usize, val: f64) {
@@ -46,11 +47,20 @@ impl SimpleDynamicProgram {
                 let kernel_x = x - i;
                 let kernel_y = y - j;
 
-                sum += self.at(i, j, t - 1) * self.kernel.at(kernel_x, kernel_y);
+                sum += self.at(i, j, t - 1)
+                    * self.field_probability_at(i, j)
+                    * self.kernel.at(kernel_x, kernel_y)
             }
         }
 
         self.set(x, y, t, sum);
+    }
+
+    fn field_probability_at(&self, x: isize, y: isize) -> f64 {
+        let x = (self.time_limit as isize + x) as usize;
+        let y = (self.time_limit as isize + y) as usize;
+
+        self.field_probabilities[x][y]
     }
 }
 
