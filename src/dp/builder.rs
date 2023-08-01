@@ -104,7 +104,19 @@ impl DynamicProgramBuilder {
         };
 
         let mut field_probabilities = match self.field_probabilities {
-            Some(fp) => fp,
+            Some(fp) => {
+                if fp.len() != 2 * time_limit + 1 {
+                    return Err(DynamicProgramBuilderError::WrongSizeOfFieldProbabilities);
+                }
+
+                for fpp in fp.iter() {
+                    if fpp.len() != 2 * time_limit + 1 {
+                        return Err(DynamicProgramBuilderError::WrongSizeOfFieldProbabilities);
+                    }
+                }
+
+                fp
+            }
             None => vec![vec![1.0; 2 * time_limit + 1]; 2 * time_limit + 1],
         };
 

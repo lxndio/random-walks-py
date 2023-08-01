@@ -93,6 +93,10 @@ impl DynamicPrograms for MultiDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
+    fn field_probabilities(&self) -> Vec<Vec<f64>> {
+        self.field_probabilities.clone()
+    }
+
     fn heatmap(&self, _path: String, _t: usize) -> anyhow::Result<()> {
         todo!()
     }

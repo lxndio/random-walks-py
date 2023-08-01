@@ -89,6 +89,10 @@ impl DynamicPrograms for SimpleDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
+    fn field_probabilities(&self) -> Vec<Vec<f64>> {
+        self.field_probabilities.clone()
+    }
+
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
         let (limit_neg, limit_pos) = self.limits();
         let coordinate_range = limit_neg as i32..(limit_pos + 1) as i32;

@@ -23,6 +23,8 @@ pub trait DynamicPrograms {
 
     fn compute(&mut self);
 
+    fn field_probabilities(&self) -> Vec<Vec<f64>>;
+
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()>;
 
     fn print(&self, t: usize);
@@ -58,6 +60,10 @@ impl DynamicPrograms for DynamicProgram {
         self.unwrap_mut().compute()
     }
 
+    fn field_probabilities(&self) -> Vec<Vec<f64>> {
+        self.unwrap().field_probabilities()
+    }
+
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
         self.unwrap().heatmap(path, t)
     }
@@ -67,7 +73,7 @@ impl DynamicPrograms for DynamicProgram {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub enum DynamicProgramType {
     #[default]
     Simple,
