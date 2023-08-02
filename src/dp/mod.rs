@@ -12,6 +12,7 @@
 
 use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::simple::SimpleDynamicProgram;
+use serde::{Deserialize, Serialize};
 
 pub mod builder;
 pub mod multi;
@@ -73,7 +74,7 @@ impl DynamicPrograms for DynamicProgram {
     }
 }
 
-#[derive(Default, PartialEq)]
+#[derive(Default, PartialEq, Serialize, Deserialize, Debug)]
 pub enum DynamicProgramType {
     #[default]
     Simple,

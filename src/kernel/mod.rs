@@ -1,5 +1,6 @@
 use crate::kernel::generator::KernelGenerator;
 use anyhow::bail;
+use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter, Write};
 use std::ops::{Index, IndexMut};
 use strum::EnumIter;
@@ -140,7 +141,7 @@ impl PartialEq for Kernel {
 
 #[macro_export]
 macro_rules! kernel {
-    ($($x:expr),+) => {
+    ($($x:expr),+) => {{
         let probs = vec![$($x),*];
         let size = (probs.len() as f64).sqrt() as usize;
 
@@ -152,10 +153,10 @@ macro_rules! kernel {
         kernel.probabilities = probs.chunks_exact(size).map(|x| x.to_vec()).collect();
 
         kernel
-    }
+    }}
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, EnumIter)]
+#[derive(Debug, PartialEq, Copy, Clone, EnumIter, Serialize, Deserialize)]
 pub enum Direction {
     North,
     East,

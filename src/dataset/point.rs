@@ -1,4 +1,5 @@
 use num::Signed;
+use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
 pub trait Coordinates<T: Signed> {
