@@ -2,9 +2,10 @@ use crate::kernel::generator::KernelGenerator;
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter, Write};
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Mul, MulAssign};
 use strum::EnumIter;
 
+pub mod biased_correlated_rw;
 pub mod biased_rw;
 pub mod correlated_rw;
 pub mod generator;
@@ -82,7 +83,7 @@ impl Kernel {
         self.probabilities[x][y]
     }
 
-    /// Rotate kernel matrix counterclockwise by `degrees`. Only multiples of 90° are supported.
+    /// Rotate kernel matrix clockwise by `degrees`. Only multiples of 90° are supported.
     pub fn rotate(&mut self, degrees: usize) -> Result<(), String> {
         if degrees % 90 != 0 {
             Err("degrees must be a multiple of 90.".into())
@@ -139,6 +140,40 @@ impl PartialEq for Kernel {
     }
 }
 
+impl Mul for Kernel {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        if self.size() == rhs.size() {
+            let mut new_kernel = self.clone();
+
+            for x in 0..self.size() {
+                for y in 0..self.size() {
+                    new_kernel.probabilities[x][y] *= rhs.probabilities[x][y];
+                }
+            }
+
+            new_kernel
+        } else {
+            panic!("both kernels must have the same size for multiplication");
+        }
+    }
+}
+
+impl MulAssign for Kernel {
+    fn mul_assign(&mut self, rhs: Self) {
+        if self.size() == rhs.size() {
+            for x in 0..self.size() {
+                for y in 0..self.size() {
+                    self.probabilities[x][y] *= rhs.probabilities[x][y];
+                }
+            }
+        } else {
+            panic!("both kernels must have the same size for multiplication");
+        }
+    }
+}
+
 #[macro_export]
 macro_rules! kernel {
     ($($x:expr),+) => {{
@@ -150,7 +185,10 @@ macro_rules! kernel {
         }
 
         let mut kernel = Kernel::try_new(size, ("ck".into(), "Custom Kernel".into())).unwrap();
-        kernel.probabilities = probs.chunks_exact(size).map(|x| x.to_vec()).collect();
+
+        kernel.probabilities = (0..size)
+            .map(|y| probs.iter().skip(y).step_by(size).copied().collect())
+            .collect();
 
         kernel
     }}
@@ -239,83 +277,92 @@ impl<T> IndexMut<Direction> for Directions<T> {
 }
 
 #[cfg(test)]
+#[rustfmt::skip]
 mod tests {
     use crate::kernel::Kernel;
 
     #[test]
     fn test_rotate_invalid() {
-        let mut kernel = Kernel {
-            probabilities: vec![
-                vec![1.0, 2.0, 3.0],
-                vec![4.0, 5.0, 6.0],
-                vec![7.0, 8.0, 9.0],
-            ],
-            name: ("".into(), "".into()),
-        };
+        let mut kernel = kernel![
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0,
+            7.0, 8.0, 9.0
+        ];
 
         assert!(kernel.rotate(87).is_err());
     }
 
     #[test]
     fn test_rotate_90() {
-        let mut kernel = Kernel {
-            probabilities: vec![
-                vec![1.0, 2.0, 3.0],
-                vec![4.0, 5.0, 6.0],
-                vec![7.0, 8.0, 9.0],
-            ],
-            name: ("".into(), "".into()),
-        };
+        let mut kernel = kernel![
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0,
+            7.0, 8.0, 9.0
+        ];
 
-        let correct_rotation = vec![
-            vec![3.0, 6.0, 9.0],
-            vec![2.0, 5.0, 8.0],
-            vec![1.0, 4.0, 7.0],
+        let mut correct_rotation = kernel![
+            7.0, 4.0, 1.0,
+            8.0, 5.0, 2.0,
+            9.0, 6.0, 3.0
         ];
 
         assert!(kernel.rotate(90).is_ok());
-        assert_eq!(kernel.probabilities, correct_rotation);
+        assert_eq!(kernel, correct_rotation);
     }
 
     #[test]
     fn test_rotate_180() {
-        let mut kernel = Kernel {
-            probabilities: vec![
-                vec![1.0, 2.0, 3.0],
-                vec![4.0, 5.0, 6.0],
-                vec![7.0, 8.0, 9.0],
-            ],
-            name: ("".into(), "".into()),
-        };
+        let mut kernel = kernel![
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0,
+            7.0, 8.0, 9.0
+        ];
 
-        let correct_rotation = vec![
-            vec![9.0, 8.0, 7.0],
-            vec![6.0, 5.0, 4.0],
-            vec![3.0, 2.0, 1.0],
+        let mut correct_rotation = kernel![
+            9.0, 8.0, 7.0,
+            6.0, 5.0, 4.0,
+            3.0, 2.0, 1.0
         ];
 
         assert!(kernel.rotate(180).is_ok());
-        assert_eq!(kernel.probabilities, correct_rotation);
+        assert_eq!(kernel, correct_rotation);
     }
 
     #[test]
     fn test_rotate_270() {
-        let mut kernel = Kernel {
+        let mut kernel = kernel![
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0,
+            7.0, 8.0, 9.0
+        ];
+
+        let mut correct_rotation = kernel![
+            3.0, 6.0, 9.0,
+            2.0, 5.0, 8.0,
+            1.0, 4.0, 7.0
+        ];
+
+        assert!(kernel.rotate(270).is_ok());
+        assert_eq!(kernel, correct_rotation);
+    }
+
+    #[test]
+    fn test_kernel_macro() {
+        let kernel = kernel![
+            1.0, 2.0, 3.0,
+            4.0, 5.0, 6.0,
+            7.0, 8.0, 9.0
+        ];
+
+        let kernel_correct = Kernel {
             probabilities: vec![
-                vec![1.0, 2.0, 3.0],
-                vec![4.0, 5.0, 6.0],
-                vec![7.0, 8.0, 9.0],
+                vec![1.0, 4.0, 7.0],
+                vec![2.0, 5.0, 8.0],
+                vec![3.0, 6.0, 9.0],
             ],
             name: ("".into(), "".into()),
         };
 
-        let correct_rotation = vec![
-            vec![7.0, 4.0, 1.0],
-            vec![8.0, 5.0, 2.0],
-            vec![9.0, 6.0, 3.0],
-        ];
-
-        assert!(kernel.rotate(270).is_ok());
-        assert_eq!(kernel.probabilities, correct_rotation);
+        assert_eq!(kernel, kernel_correct);
     }
 }

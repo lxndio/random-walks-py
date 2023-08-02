@@ -73,26 +73,49 @@ impl KernelGenerator for CorrelatedRwGenerator {
 
 #[cfg(test)]
 mod tests {
-    use crate::kernel::biased_rw::BiasedRwGenerator;
+    use crate::kernel;
+    use crate::kernel::correlated_rw::CorrelatedRwGenerator;
     use crate::kernel::{Direction, Kernel};
 
     #[test]
+    #[rustfmt::skip]
     fn test_correlated_rw() {
-        let kernel = Kernel::from_generator(BiasedRwGenerator {
-            probability: 0.5,
-            direction: Direction::North,
-        });
+        let kernels = Kernel::multiple_from_generator(CorrelatedRwGenerator { persistence: 0.5 });
 
-        let kernel_correct = Kernel {
-            probabilities: vec![
-                vec![0.0, 0.125, 0.0],
-                vec![0.5, 0.125, 0.125],
-                vec![0.0, 0.125, 0.0],
-            ],
-            name: ("".into(), "".into()),
-        };
+        let kernel_correct_0 = kernel![
+            0.0,   0.5,   0.0,
+            0.125, 0.125, 0.125,
+            0.0,   0.125, 0.0
+        ];
+        let kernel_correct_1 = kernel![
+            0.0,   0.125, 0.0,
+            0.125, 0.125, 0.5,
+            0.0,   0.125, 0.0
+        ];
+        let kernel_correct_2 = kernel![
+            0.0,   0.125, 0.0,
+            0.125, 0.125, 0.125,
+            0.0,   0.5,   0.0
+        ];
+        let kernel_correct_3 = kernel![
+            0.0, 0.125, 0.0,
+            0.5, 0.125, 0.125,
+            0.0, 0.125, 0.0
+        ];
+        let kernel_correct_4 = kernel![
+            0.0,   0.125, 0.0,
+            0.125, 0.5,   0.125,
+            0.0,   0.125, 0.0
+        ];
 
-        assert!(kernel.is_ok());
-        assert_eq!(kernel.unwrap(), kernel_correct);
+        assert!(kernels.is_ok());
+
+        let kernels = kernels.unwrap();
+
+        assert_eq!(kernels[0], kernel_correct_0);
+        assert_eq!(kernels[1], kernel_correct_1);
+        assert_eq!(kernels[2], kernel_correct_2);
+        assert_eq!(kernels[3], kernel_correct_3);
+        assert_eq!(kernels[4], kernel_correct_4);
     }
 }

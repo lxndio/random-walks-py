@@ -49,24 +49,23 @@ impl KernelGenerator for BiasedRwGenerator {
 
 #[cfg(test)]
 mod tests {
+    use crate::kernel;
     use crate::kernel::biased_rw::BiasedRwGenerator;
     use crate::kernel::{Direction, Kernel};
 
     #[test]
+    #[rustfmt::skip]
     fn test_biased_rw() {
         let kernel = Kernel::from_generator(BiasedRwGenerator {
             probability: 0.5,
             direction: Direction::North,
         });
 
-        let kernel_correct = Kernel {
-            probabilities: vec![
-                vec![0.0, 0.125, 0.0],
-                vec![0.5, 0.125, 0.125],
-                vec![0.0, 0.125, 0.0],
-            ],
-            name: ("".into(), "".into()),
-        };
+        let kernel_correct = kernel![
+            0.0,   0.5,   0.0,
+            0.125, 0.125, 0.125,
+            0.0,   0.125, 0.0
+        ];
 
         assert!(kernel.is_ok());
         assert_eq!(kernel.unwrap(), kernel_correct);
