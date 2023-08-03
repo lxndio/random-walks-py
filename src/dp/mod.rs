@@ -74,7 +74,7 @@ impl DynamicPrograms for DynamicProgram {
     }
 }
 
-#[derive(Default, PartialEq, Serialize, Deserialize, Debug)]
+#[derive(Default, Clone, PartialEq, Serialize, Deserialize, Debug)]
 pub enum DynamicProgramType {
     #[default]
     Simple,

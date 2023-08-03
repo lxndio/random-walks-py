@@ -55,6 +55,12 @@ impl DynamicProgramBuilder {
         self
     }
 
+    pub fn with_type(mut self, dp_type: DynamicProgramType) -> Self {
+        self.dp_type = Some(dp_type);
+
+        self
+    }
+
     pub fn time_limit(mut self, time_limit: usize) -> Self {
         self.time_limit = Some(time_limit);
 

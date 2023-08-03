@@ -194,12 +194,13 @@ macro_rules! kernel {
     }}
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, EnumIter, Serialize, Deserialize)]
+#[derive(Default, Debug, PartialEq, Copy, Clone, EnumIter, Serialize, Deserialize)]
 pub enum Direction {
     North,
     East,
     South,
     West,
+    #[default]
     Stay,
 }
 
