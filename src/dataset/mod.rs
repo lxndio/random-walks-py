@@ -35,6 +35,7 @@ impl ToString for Datapoint {
 }
 
 /// A dataset storing a set of 2d-points with associated metadata.
+#[derive(Default)]
 pub struct Dataset {
     data: Vec<Datapoint>,
     coordinate_type: CoordinateType,

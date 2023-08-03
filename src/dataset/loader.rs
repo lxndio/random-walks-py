@@ -13,10 +13,12 @@ pub trait DatasetLoader {
     fn coordinate_type(&self) -> CoordinateType;
 }
 
+#[derive(Default, Debug, Clone, PartialEq)]
 pub enum ColumnAction {
     KeepX,
     KeepY,
     KeepMetadata(String),
+    #[default]
     Discard,
 }
 
