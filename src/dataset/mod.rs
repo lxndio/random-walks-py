@@ -11,6 +11,7 @@ use rand::Rng;
 use std::collections::HashMap;
 
 /// A filter that can be applied to a [`Dataset`] by calling [`Dataset::filter`].
+#[derive(Debug)]
 pub enum DatasetFilter {
     /// Filter the dataset by a given metadata key-value pair and only keeps points
     /// which have the corresponding metadata entry.

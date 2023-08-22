@@ -144,6 +144,12 @@ pub enum Point {
     XY(XYPoint),
 }
 
+impl Default for Point {
+    fn default() -> Self {
+        Point::GCS(GCSPoint::default())
+    }
+}
+
 impl Coordinates<f64> for Point {
     fn x(&self) -> f64 {
         match self {
