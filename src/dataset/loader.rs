@@ -1,6 +1,7 @@
 use crate::dataset::point::{GCSPoint, Point, XYPoint};
 use crate::dataset::Datapoint;
 use anyhow::Context;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io;
 use std::io::ErrorKind;
@@ -13,7 +14,7 @@ pub trait DatasetLoader {
     fn coordinate_type(&self) -> CoordinateType;
 }
 
-#[derive(Default, Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum ColumnAction {
     KeepX,
     KeepY,
@@ -23,7 +24,7 @@ pub enum ColumnAction {
 }
 
 /// The type of coordinates used in a dataset.
-#[derive(Default, Copy, Clone, PartialEq)]
+#[derive(Default, Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CoordinateType {
     /// Geographic coordinate system (GCS) coordinates.
     #[default]
@@ -33,6 +34,7 @@ pub enum CoordinateType {
     XY,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CSVLoaderOptions {
     pub path: String,
     pub delimiter: u8,
