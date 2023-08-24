@@ -677,8 +677,8 @@ impl<'a> DatasetWalksBuilder<'a> {
     /// two points. The time difference is then mapped to time steps using `time_step_len` which
     /// specifies the length of a time step in seconds. `metadata_key` specifies where
     /// timestamps are stored for each point.
-    pub fn time_steps_by_time(mut self, time_step_len: f64, metadata_key: String) -> Self {
-        self.time_steps = TimeStepsBy::TimeDifference(time_step_len, &metadata_key);
+    pub fn time_steps_by_time(mut self, time_step_len: f64, metadata_key: &'static str) -> Self {
+        self.time_steps = TimeStepsBy::TimeDifference(time_step_len, metadata_key);
 
         self
     }
@@ -753,6 +753,8 @@ impl<'a> DatasetWalksBuilder<'a> {
                     let (x2, y2): (i64, i64) = (point2.x(), point2.y());
 
                     let dist = (x1 - x2).abs() + (y1 - y2).abs();
+
+                    println!("Time steps: {}", (dist as f64 * multiplier) as usize);
 
                     (dist as f64 * multiplier) as usize
                 }
