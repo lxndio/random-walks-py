@@ -10,6 +10,7 @@
 //! dp.count_paths();
 //! ```
 
+use pyo3::pyclass;
 use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::simple::SimpleDynamicProgram;
 use serde::{Deserialize, Serialize};

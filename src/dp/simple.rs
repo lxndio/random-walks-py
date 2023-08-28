@@ -5,7 +5,10 @@ use num::Zero;
 use plotters::prelude::*;
 use std::fmt::Debug;
 use std::time::Instant;
+use pyo3::{pyclass, pymethods};
+use crate::kernel::simple_rw::SimpleRwGenerator;
 
+#[pyclass]
 pub struct SimpleDynamicProgram {
     pub(crate) table: Vec<Vec<Vec<f64>>>,
     pub(crate) time_limit: usize,
@@ -13,7 +16,22 @@ pub struct SimpleDynamicProgram {
     pub(crate) field_probabilities: Vec<Vec<f64>>,
 }
 
+#[pymethods]
 impl SimpleDynamicProgram {
+    #[new]
+    #[pyo3(signature = (time_limit=400, kernel=None, field_probabilities=Vec::new()))]
+    pub fn new(time_limit: usize, kernel: Option<String>, field_probabilities: Vec<Vec<f64>>) -> SimpleDynamicProgram {
+        SimpleDynamicProgram {
+            table: vec![
+                vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
+                time_limit + 1
+            ],
+            time_limit,
+            kernel: Kernel::from_generator(SimpleRwGenerator).unwrap(),
+            field_probabilities,
+        }
+    }
+
     pub fn at(&self, x: isize, y: isize, t: usize) -> f64 {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
