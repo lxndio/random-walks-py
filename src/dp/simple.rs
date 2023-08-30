@@ -47,13 +47,11 @@ impl SimpleDynamicProgram {
                 let kernel_x = x - i;
                 let kernel_y = y - j;
 
-                sum += self.at(i, j, t - 1)
-                    * self.field_probability_at(i, j)
-                    * self.kernel.at(kernel_x, kernel_y);
+                sum += self.at(i, j, t - 1) * self.kernel.at(kernel_x, kernel_y);
             }
         }
 
-        self.set(x, y, t, sum);
+        self.set(x, y, t, sum * self.field_probability_at(x, y));
     }
 
     fn field_probability_at(&self, x: isize, y: isize) -> f64 {
