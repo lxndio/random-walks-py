@@ -49,7 +49,7 @@ impl SimpleDynamicProgram {
 
                 sum += self.at(i, j, t - 1)
                     * self.field_probability_at(i, j)
-                    * self.kernel.at(kernel_x, kernel_y)
+                    * self.kernel.at(kernel_x, kernel_y);
             }
         }
 

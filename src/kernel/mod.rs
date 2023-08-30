@@ -9,6 +9,7 @@ pub mod biased_correlated_rw;
 pub mod biased_rw;
 pub mod correlated_rw;
 pub mod generator;
+pub mod levy_walk;
 pub mod simple_rw;
 
 #[derive(Clone)]
