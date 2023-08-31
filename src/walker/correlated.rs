@@ -80,7 +80,7 @@ impl Walker for CorrelatedWalker {
         path.reverse();
         path.insert(0, (x, y));
 
-        Ok(path)
+        Ok(path.into())
     }
 
     fn name(&self, short: bool) -> String {

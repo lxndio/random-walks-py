@@ -1,5 +1,4 @@
 use num::Signed;
-use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
 pub trait Coordinates<T: Signed> {
@@ -68,7 +67,7 @@ impl ToString for GCSPoint {
 }
 
 /// A 2d-point in XY coordinate system.
-#[derive(Default, Debug, Clone, Copy, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct XYPoint {
     pub x: i64,
     pub y: i64,

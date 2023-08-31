@@ -6,6 +6,8 @@ use crate::dp::DynamicProgram;
 use crate::walker::standard::StandardWalker;
 use crate::walker::{Walk, Walker};
 use anyhow::{anyhow, bail, Context};
+use line_drawing::Bresenham;
+use pathfinding::prelude::{build_path, dijkstra_all};
 use plotters::prelude::*;
 use point::{Coordinates, GCSPoint, Point, XYPoint};
 use rand::Rng;
@@ -349,6 +351,109 @@ impl Dataset {
             .iter()
             .map(|(x, y)| (x + from.x() as isize, y + from.y() as isize))
             .collect())
+    }
+
+    pub fn direct_between(&self, from: usize, to: usize) -> anyhow::Result<Walk> {
+        let from = &self.get(from).context("from index out of bounds.")?.point;
+        let to = &self.get(to).context("to index out of bounds.")?.point;
+
+        let Point::XY(from) = *from else {
+            bail!("Points have to be in XY coordinates.");
+        };
+        let Point::XY(to) = *to else {
+            bail!("Points have to be in XY coordinates.");
+        };
+
+        // Create graph from space between from and to
+
+        let (min_x, max_x) = (from.x.min(to.x), from.x.max(to.x));
+        let (min_y, max_y) = (from.y.min(to.y), from.y.max(to.y));
+
+        let mut vertices = Vec::new();
+        let mut edges = HashMap::new();
+
+        let important_vs: Vec<XYPoint> = Bresenham::new(from.into(), to.into())
+            .map(|x| XYPoint::from(x))
+            .collect();
+
+        for x in min_x..=max_x {
+            for y in min_y..=max_y {
+                let mut adj = Vec::new();
+
+                if x > min_x {
+                    let p = XYPoint::from((x - 1, y));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+                if x < max_x {
+                    let p = XYPoint::from((x + 1, y));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+                if y > min_y {
+                    let p = XYPoint::from((x, y - 1));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+                if y < max_y {
+                    let p = XYPoint::from((x, y + 1));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+
+                vertices.push(XYPoint::from((x, y)));
+                edges.insert(XYPoint::from((x, y)), adj);
+            }
+        }
+
+        // Run Dijkstra on graph
+
+        let successors = |i: &u32| {
+            let v = vertices[*i as usize];
+            let adj = edges[&v].clone();
+
+            adj.iter()
+                .map(|(v, weight)| {
+                    (
+                        vertices.iter().position(|x| x == v).unwrap() as u32,
+                        *weight,
+                    )
+                })
+                .collect::<Vec<(u32, usize)>>()
+        };
+
+        let from = vertices.iter().position(|x| x == &from).unwrap() as u32;
+        let to = vertices.iter().position(|x| x == &to).unwrap() as u32;
+
+        let reachables = dijkstra_all(&from, successors);
+        let walk = build_path(&to, &reachables);
+
+        let walk = walk
+            .iter()
+            .map(|i| {
+                let p = vertices[*i as usize];
+
+                (p.x as isize, p.y as isize)
+            })
+            .collect();
+
+        Ok(walk)
     }
 
     /// Print all [`Datapoint`]s in the dataset with index in range [from, to).

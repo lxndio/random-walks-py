@@ -54,7 +54,7 @@ impl Walker for StandardWalker {
         path.reverse();
         path.insert(0, (x, y));
 
-        Ok(path)
+        Ok(path.into())
     }
 
     fn name(&self, short: bool) -> String {
