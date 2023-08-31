@@ -48,13 +48,11 @@ impl MultiDynamicProgram {
                     let kernel_x = x - i;
                     let kernel_y = y - j;
 
-                    sum += self.at(i, j, t - 1, variant)
-                        * self.field_probability_at(i, j)
-                        * kernel.at(kernel_x, kernel_y);
+                    sum += self.at(i, j, t - 1, variant) * kernel.at(kernel_x, kernel_y);
                 }
             }
 
-            self.set(x, y, t, variant, sum);
+            self.set(x, y, t, variant, sum * self.field_probability_at(x, y));
         }
     }
 
