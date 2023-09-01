@@ -1,3 +1,4 @@
+use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};
 use crate::dataset::point::{GCSPoint, Point, XYPoint};
 use crate::dataset::Datapoint;
 use anyhow::Context;
@@ -5,34 +6,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io;
 use std::io::ErrorKind;
-
-pub trait DatasetLoader {
-    fn load(&self) -> anyhow::Result<Vec<Datapoint>>;
-
-    fn stream(&self) -> anyhow::Result<()>;
-
-    fn coordinate_type(&self) -> CoordinateType;
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub enum ColumnAction {
-    KeepX,
-    KeepY,
-    KeepMetadata(String),
-    #[default]
-    Discard,
-}
-
-/// The type of coordinates used in a dataset.
-#[derive(Default, Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
-pub enum CoordinateType {
-    /// Geographic coordinate system (GCS) coordinates.
-    #[default]
-    GCS,
-
-    /// XY coordinates.
-    XY,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CSVLoaderOptions {
@@ -78,7 +51,7 @@ impl DatasetLoader for CSVLoader {
             let record = result?;
 
             if record.len() != self.options.column_actions.len() {
-                return Err(io::Error::from(ErrorKind::InvalidData)).context(format!(
+                return Err(std::io::Error::from(ErrorKind::InvalidData)).context(format!(
                     "Expected {} columns, got {}.",
                     self.options.column_actions.len(),
                     record.len()

@@ -20,6 +20,7 @@ time = { version = "0.3.25", features = ["macros", "formatting", "parsing"] }
 pathfinding = "4.3.1"
 line_drawing = "1.0.0"
 geo = "0.26.0"
+polars = "0.32.1"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }

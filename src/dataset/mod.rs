@@ -130,11 +130,11 @@ impl Dataset {
                     DatasetFilter::ByCoordinates(from, to) => match self.coordinate_type {
                         CoordinateType::GCS => {
                             let Point::GCS(from) = from else {
-                                    return Err(anyhow!("Expected GCS coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected GCS coordinates in filter."));
+                            };
                             let Point::GCS(to) = to else {
-                                    return Err(anyhow!("Expected GCS coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected GCS coordinates in filter."));
+                            };
 
                             let x: f64 = datapoint.point.x();
                             let y: f64 = datapoint.point.y();
@@ -146,11 +146,11 @@ impl Dataset {
                         }
                         CoordinateType::XY => {
                             let Point::XY(from) = from else {
-                                    return Err(anyhow!("Expected XY coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected XY coordinates in filter."));
+                            };
                             let Point::XY(to) = to else {
-                                    return Err(anyhow!("Expected XY coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected XY coordinates in filter."));
+                            };
 
                             let x: i64 = datapoint.point.x();
                             let y: i64 = datapoint.point.y();
