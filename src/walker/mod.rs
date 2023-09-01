@@ -1,4 +1,5 @@
 pub mod correlated;
+pub mod multi_step;
 pub mod standard;
 
 use crate::dp::DynamicProgram;
