@@ -36,6 +36,7 @@ pub enum DynamicProgram {
     Multi(MultiDynamicProgram),
 }
 
+#[cfg(not(tarpaulin_include))]
 impl DynamicProgram {
     fn unwrap(&self) -> &dyn DynamicPrograms {
         match self {
@@ -52,6 +53,7 @@ impl DynamicProgram {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl DynamicPrograms for DynamicProgram {
     fn limits(&self) -> (isize, isize) {
         self.unwrap().limits()

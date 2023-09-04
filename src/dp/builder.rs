@@ -18,8 +18,8 @@ pub enum DynamicProgramBuilderError {
     NoKernelsSet,
     #[error("a multi DP takes multiple kernels and not a single one")]
     SingleKernelForMulti,
-    #[error("a single DP takes one kernel and not multiple ones")]
-    MultipleKernelsForSingle,
+    #[error("a simple DP takes one kernel and not multiple ones")]
+    MultipleKernelsForSimple,
     #[error("field probabilities must be of same size as DP table")]
     WrongSizeOfFieldProbabilities,
     #[error("barriers must be inside the time limit range")]
@@ -144,7 +144,7 @@ impl DynamicProgramBuilder {
         match dp_type {
             DynamicProgramType::Simple => {
                 if self.kernels.is_some() {
-                    return Err(DynamicProgramBuilderError::MultipleKernelsForSingle);
+                    return Err(DynamicProgramBuilderError::MultipleKernelsForSimple);
                 }
 
                 let Some(kernel) = self.kernel else {
@@ -184,5 +184,222 @@ impl DynamicProgramBuilder {
                 }))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dataset::point::XYPoint;
+    use crate::dp::builder::{DynamicProgramBuilder, DynamicProgramBuilderError};
+    use crate::dp::DynamicProgramType;
+    use crate::kernel::correlated_rw::CorrelatedRwGenerator;
+    use crate::kernel::simple_rw::SimpleRwGenerator;
+    use crate::kernel::Kernel;
+    use crate::xy;
+
+    #[test]
+    fn test_builder_missing_time_limit() {
+        let dp = DynamicProgramBuilder::new().simple().build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::NoTimeLimitSet)
+        ));
+    }
+
+    #[test]
+    fn test_builder_missing_type() {
+        let dp = DynamicProgramBuilder::new().time_limit(10).build();
+
+        assert!(matches!(dp, Err(DynamicProgramBuilderError::NoTypeSet)));
+    }
+
+    #[test]
+    fn test_wrong_size_of_field_probabilities() {
+        let fps = vec![vec![1.0; 21]; 12];
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .field_probabilities(fps)
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::WrongSizeOfFieldProbabilities)
+        ));
+
+        let fps = vec![vec![1.0; 8]; 21];
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .field_probabilities(fps)
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::WrongSizeOfFieldProbabilities)
+        ));
+    }
+
+    #[test]
+    fn test_barrier_out_of_range() {
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .add_single_barrier(xy!(25, 5))
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::BarrierOutOfRange)
+        ));
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .add_single_barrier(xy!(5, 25))
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::BarrierOutOfRange)
+        ));
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .add_rect_barrier(xy!(15, 5), xy!(25, 5))
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::BarrierOutOfRange)
+        ));
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .add_rect_barrier(xy!(5, 15), xy!(5, 25))
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::BarrierOutOfRange)
+        ));
+    }
+
+    #[test]
+    fn test_multiple_kernels_for_single() {
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernels(vec![Kernel::from_generator(SimpleRwGenerator).unwrap(); 10])
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::MultipleKernelsForSimple)
+        ));
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .kernels(vec![Kernel::from_generator(SimpleRwGenerator).unwrap(); 10])
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::MultipleKernelsForSimple)
+        ));
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernels(vec![Kernel::from_generator(SimpleRwGenerator).unwrap(); 10])
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::MultipleKernelsForSimple)
+        ));
+    }
+
+    #[test]
+    fn test_single_kernel_for_multi() {
+        let dp = DynamicProgramBuilder::new()
+            .multi()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::SingleKernelForMulti)
+        ));
+
+        let dp = DynamicProgramBuilder::new()
+            .multi()
+            .time_limit(10)
+            .kernels(vec![Kernel::from_generator(SimpleRwGenerator).unwrap(); 10])
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::SingleKernelForMulti)
+        ));
+
+        let dp = DynamicProgramBuilder::new()
+            .multi()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .kernels(vec![Kernel::from_generator(SimpleRwGenerator).unwrap(); 10])
+            .build();
+
+        assert!(matches!(
+            dp,
+            Err(DynamicProgramBuilderError::SingleKernelForMulti)
+        ));
+    }
+
+    #[test]
+    fn test_no_kernels_set() {
+        let dp = DynamicProgramBuilder::new().simple().time_limit(10).build();
+
+        assert!(matches!(dp, Err(DynamicProgramBuilderError::NoKernelSet)));
+
+        let dp = DynamicProgramBuilder::new().multi().time_limit(10).build();
+
+        assert!(matches!(dp, Err(DynamicProgramBuilderError::NoKernelsSet)));
+    }
+
+    #[test]
+    fn test_correct() {
+        let dp = DynamicProgramBuilder::new()
+            .with_type(DynamicProgramType::Simple)
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .field_probabilities(vec![vec![1.0; 21]; 21])
+            .add_rect_barrier(xy!(5, -5), xy!(5, 5))
+            .build();
+
+        assert!(matches!(dp, Ok(_)));
+
+        let dp = DynamicProgramBuilder::new()
+            .with_type(DynamicProgramType::Multi)
+            .time_limit(10)
+            .kernels(
+                Kernel::multiple_from_generator(CorrelatedRwGenerator { persistence: 0.5 })
+                    .unwrap(),
+            )
+            .field_probabilities(vec![vec![1.0; 21]; 21])
+            .add_rect_barrier(xy!(5, -5), xy!(5, 5))
+            .build();
+
+        assert!(matches!(dp, Ok(_)));
     }
 }
