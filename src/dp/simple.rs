@@ -28,7 +28,7 @@ impl SimpleDynamicProgram {
         self.table[t][x][y] = val;
     }
 
-    pub fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {
+    fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {
         let ks = (self.kernel.size() / 2) as isize;
         let (limit_neg, limit_pos) = self.limits();
         let mut sum = 0.0;
@@ -63,6 +63,7 @@ impl SimpleDynamicProgram {
 }
 
 impl DynamicPrograms for SimpleDynamicProgram {
+    #[cfg(not(tarpaulin_include))]
     fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
     }
@@ -87,10 +88,12 @@ impl DynamicPrograms for SimpleDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
+    #[cfg(not(tarpaulin_include))]
     fn field_probabilities(&self) -> Vec<Vec<f64>> {
         self.field_probabilities.clone()
     }
 
+    #[cfg(not(tarpaulin_include))]
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
         let (limit_neg, limit_pos) = self.limits();
         let coordinate_range = limit_neg as i32..(limit_pos + 1) as i32;
@@ -149,6 +152,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
         Ok(())
     }
 
+    #[cfg(not(tarpaulin_include))]
     fn print(&self, t: usize) {
         for y in 0..2 * self.time_limit + 1 {
             for x in 0..2 * self.time_limit + 1 {
@@ -160,6 +164,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl Debug for SimpleDynamicProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DynamicProgram")
@@ -175,3 +180,164 @@ impl PartialEq for SimpleDynamicProgram {
 }
 
 impl Eq for SimpleDynamicProgram {}
+
+#[cfg(test)]
+mod tests {
+    use crate::dp::builder::DynamicProgramBuilder;
+    use crate::dp::{DynamicProgram, DynamicPrograms};
+    use crate::kernel::biased_rw::BiasedRwGenerator;
+    use crate::kernel::simple_rw::SimpleRwGenerator;
+    use crate::kernel::{Direction, Kernel};
+
+    #[test]
+    fn test_simple_dp_at() {
+        let mut dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build()
+            .unwrap();
+
+        dp.compute();
+
+        let DynamicProgram::Simple(dp) = dp else {
+            unreachable!();
+        };
+
+        assert_eq!(dp.at(0, 0, 0), 1.0);
+    }
+
+    #[test]
+    fn test_simple_dp_set() {
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build()
+            .unwrap();
+
+        let DynamicProgram::Simple(mut dp) = dp else {
+            unreachable!();
+        };
+
+        dp.set(0, 0, 0, 10.0);
+
+        assert_eq!(dp.at(0, 0, 0,), 10.0);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_simple_dp_apply_kernel_at() {
+        let mut fps = vec![vec![1.0; 21]; 21];
+
+        fps[10][10] = 0.75;
+
+        let dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .field_probabilities(fps)
+            .build()
+            .unwrap();
+
+        let DynamicProgram::Simple(mut dp) = dp else {
+            unreachable!();
+        };
+
+        dp.set(0, 0, 0, 0.5);
+        dp.set(-1, 0, 0, 0.5);
+        dp.apply_kernel_at(0, 0, 1);
+
+        let rounded_res = format!("{:.2}", dp.at(0, 0, 1)).parse::<f64>().unwrap();
+
+        assert_eq!(rounded_res, 0.15);
+    }
+
+    #[test]
+    fn test_compute() {
+        let mut dp = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(1)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build()
+            .unwrap();
+
+        dp.compute();
+
+        let DynamicProgram::Simple(mut dp) = dp else {
+            unreachable!();
+        };
+
+        assert_eq!(dp.at(0, 0, 1), 0.2);
+        assert_eq!(dp.at(-1, 0, 1), 0.2);
+        assert_eq!(dp.at(1, 0, 1), 0.2);
+        assert_eq!(dp.at(0, -1, 1), 0.2);
+        assert_eq!(dp.at(0, 1, 1), 0.2);
+    }
+
+    #[test]
+    fn test_dp_eq() {
+        let mut dp1 = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build()
+            .unwrap();
+
+        dp1.compute();
+
+        let mut dp2 = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build()
+            .unwrap();
+
+        dp2.compute();
+
+        let DynamicProgram::Simple(mut dp1) = dp1 else {
+            unreachable!();
+        };
+        let DynamicProgram::Simple(mut dp2) = dp2 else {
+            unreachable!();
+        };
+
+        assert_eq!(dp1, dp2);
+    }
+
+    #[test]
+    fn test_dp_not_eq() {
+        let mut dp1 = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+            .build()
+            .unwrap();
+
+        dp1.compute();
+
+        let mut dp2 = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(10)
+            .kernel(
+                Kernel::from_generator(BiasedRwGenerator {
+                    probability: 0.5,
+                    direction: Direction::North,
+                })
+                .unwrap(),
+            )
+            .build()
+            .unwrap();
+
+        dp2.compute();
+
+        let DynamicProgram::Simple(mut dp1) = dp1 else {
+            unreachable!();
+        };
+        let DynamicProgram::Simple(mut dp2) = dp2 else {
+            unreachable!();
+        };
+
+        assert_ne!(dp1, dp2);
+    }
+}
