@@ -40,7 +40,10 @@ impl DatasetLoader for PolarsLoader {
         let cols = self.options.df.get_columns();
 
         for series in 0..self.options.df.iter().len() {
-            let series = cols.iter().map(|c| c.get(series).unwrap()).collect::<Vec<_>>();
+            let series = cols
+                .iter()
+                .map(|c| c.get(series).unwrap())
+                .collect::<Vec<_>>();
 
             if series.len() != self.options.column_actions.len() {
                 return Err(std::io::Error::from(ErrorKind::InvalidData)).context(format!(
@@ -96,13 +99,13 @@ impl DatasetLoader for PolarsLoader {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
+    use crate::dataset::loader::{ColumnAction, CoordinateType};
+    use crate::dataset::point::{Point, XYPoint};
+    use crate::dataset::{Datapoint, Dataset};
     use polars::df;
     use polars::prelude::NamedFrom;
-    use crate::dataset::{Datapoint, Dataset};
-    use crate::dataset::loader::{ColumnAction, CoordinateType};
-    use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
-    use crate::dataset::point::{Point, XYPoint};
+    use std::collections::HashMap;
 
     #[test]
     fn test_polars_loader() {
@@ -111,7 +114,8 @@ mod tests {
             "x" => &[10, 25, -17],
             "y" => &[5, 10, 28],
             "type" => &["a", "b", "a"],
-        ).unwrap();
+        )
+        .unwrap();
 
         let loader = PolarsLoader::new(PolarsLoaderOptions {
             df,
