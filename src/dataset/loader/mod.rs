@@ -1,4 +1,6 @@
 pub mod csv;
+#[cfg(feature = "polars")]
+pub mod polars;
 
 use crate::dataset::Datapoint;
 use anyhow::Context;
