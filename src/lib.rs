@@ -61,7 +61,7 @@
 //!
 //! See the documentation of `Dataset` for more information on how to work with datasets. There
 //! are different functions to modify, e.g. filter, datasets. Single random walks can be generated
-//! using the function [`rw_between`](dataset::Dataset::rw_between). To generate many random
+//! using the function [`rw_between()`](dataset::Dataset::rw_between). To generate many random
 //! walks at once, use the [`DatasetWalksBuilder`](dataset::DatasetWalksBuilder).
 //!
 //! # Getting Started

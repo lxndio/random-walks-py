@@ -1,6 +1,9 @@
+//! Provides different formats for two-dimensional points.
+
 use num::Signed;
 use std::ops::{Add, Sub};
 
+/// Specifies points that have an X- and Y-coordinate.
 pub trait Coordinates<T: Signed> {
     fn x(&self) -> T;
     fn y(&self) -> T;

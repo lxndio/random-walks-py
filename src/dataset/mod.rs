@@ -1,4 +1,93 @@
-//! Provides functionality for loading and processing datasets.
+//! Provides functionality for loading and processing [`Dataset`s](Dataset).
+//!
+//! # Dataset Creation
+//!
+//! The easiest way to create a [`Dataset`] is to use the
+//! [`DatasetBuilder`](builder::DatasetBuilder).
+//!
+//! # Shrinking
+//!
+//! If only some specific entries of the dataset are relevant for later processing,
+//! [`keep()`](Dataset::keep) can be used to remove all [`DataPoint`s](Datapoint) that are outside
+//! of a specified index range. For example,
+//!
+//! ```
+//! dataset.keep(Some(1000), Some(2001));
+//! ```
+//!
+//! will remove all entries but the ones with indices in the range `[1000, 2001)`. Notice that the
+//! lower bound is inclusive, while the upper bound is exclusive. If one side of the range is
+//! unspecified (`None`), the range will be open in that side.
+//!
+//! # Filtering
+//!
+//! Datasets can be filtered using different [`DatasetFilter`s](DatasetFilter). See the
+//! documentation for a list of all filters including descriptions. A filter can be applied as
+//! follows:
+//!
+//! ```
+//! use randomwalks_lib::dataset::DatasetFilter;
+//! use randomwalks_lib::xy;
+//!
+//! dataset.filter(vec![
+//!     DatasetFilter::ByCoordinates(Point::XY(xy!(100, 100)), Point::XY(xy!(500, 500)));
+//! ]);
+//! ```
+//!
+//! # Coordinate Conversion
+//!
+//! When loading a dataset with GCS coordinates, the coordinates have to be converted into XY
+//! coordinates, before generating random walks. For that purpose, the following function can be
+//! used.
+//!
+//! ```
+//! dataset.convert_gcs_to_xy(-10000, 10000);
+//! ```
+//!
+//! When converting the coordinates, a range has to be specified to which the points get normalized.
+//! This range depends on the dataset loaded and has to be set correspondingly to allow for large
+//! enough distances between the points so that the points are different when represented using
+//! integer coordinates.
+//!
+//! # Generating Random Walks
+//!
+//! There are two ways to generate random walks from a dataset. The first option generates a single
+//! random walk and may be used if no more walks are needed or if implemented into some other
+//! processing logic.
+//!
+//! The following example generates a random walk between the data points with indices 0 and 1 with
+//! 400 time steps. A previously computed [`DynamicProgram`](crate::dp::DynamicProgram) and a
+//! [`Walker`](crate::walker::Walker) must be specified.
+//!
+//! ```
+//! let path = dataset.rw_between(&dp, walker, 0, 1, 400).unwrap();
+//! ```
+//! It is also possible to generate many random walks between different pairs of points at once.
+//! To do this, the [`DatasetWalksBuilder`](DatasetWalksBuilder) can be used.
+//!
+//! The following example generates 10 random walks each between all neighboring pairs of data
+//! points between indices 0 and 100, i.e. 10 walks between data points 0 and 1, 10 walks between
+//! data points 1 and 2, and so on. All walks have 400 time steps each. A previously computed
+//! [`DynamicProgram`](crate::dp::DynamicProgram) and a [`Walker`](crate::walker::Walker) must be
+//! specified.
+//!
+//! ```
+//! use randomwalks_lib::dataset::DatasetWalksBuilder;
+//!
+//! let paths = DatasetWalksBuilder::new()
+//!     .dataset(&dataset)
+//!     .dp(&dp)
+//!     .walker(walker)
+//!     .from(0)
+//!     .to(100)
+//!     .count(10)
+//!     .time_steps(400)
+//!     .build()
+//!     .unwrap();
+//! ```
+//!
+//! Also, the number of time steps can be computed automatically. See the documentation of the
+//! [`DatasetWalksBuilder`](DatasetWalksBuilder) for more information.
 
 pub mod builder;
 pub mod loader;
