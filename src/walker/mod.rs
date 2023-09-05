@@ -4,7 +4,7 @@ pub mod standard;
 
 use crate::dp::DynamicProgram;
 use geo::algorithm::frechet_distance::FrechetDistance;
-use geo::{Coord, LineString};
+use geo::{line_string, Coord, LineString};
 use std::ops::Index;
 use thiserror::Error;
 
@@ -23,6 +23,16 @@ impl Walk {
     pub fn frechet_distance(&self, other: &Walk) -> f64 {
         let self_line = LineString::from(self);
         let other_line = LineString::from(other);
+
+        self_line.frechet_distance(&other_line)
+    }
+
+    pub fn directness_deviation(&self) -> f64 {
+        let self_line = LineString::from(self);
+        let other_line = line_string![
+            (x: self.0.first().unwrap().0 as f64, y: self.0.first().unwrap().1 as f64),
+            (x: self.0.last().unwrap().0 as f64, y: self.0.last().unwrap().1 as f64),
+        ];
 
         self_line.frechet_distance(&other_line)
     }
