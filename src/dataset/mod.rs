@@ -111,11 +111,11 @@ use time::PrimitiveDateTime;
 /// A filter that can be applied to a [`Dataset`] by calling [`Dataset::filter`].
 #[derive(Debug)]
 pub enum DatasetFilter {
-    /// Filter the dataset by a given metadata key-value pair and only keeps points
+    /// Filters the dataset by a given metadata key-value pair and only keeps points
     /// which have the corresponding metadata entry.
     ByMetadata(String, String),
 
-    /// Filter the dataset by coordinates and only keeps points where the
+    /// Filters the dataset by coordinates and only keeps points where the
     /// coordinates are in the range `[from, to]`.
     ByCoordinates(Point, Point),
 }
