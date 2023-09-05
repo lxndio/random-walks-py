@@ -1,14 +1,4 @@
-//! The dynamic program used to compute everything.
-//!
-//! # Examples
-//!
-//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleStepper`].
-//! Then use it to count the number of paths leading to each cell.
-//!
-//! ```
-//! let mut dp = DynamicProgram::new(10, SimpleGenerator);
-//! dp.count_paths();
-//! ```
+//! Provides the dynamic programs required to compute random walks.
 
 use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::simple::SimpleDynamicProgram;

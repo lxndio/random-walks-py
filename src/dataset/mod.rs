@@ -1,3 +1,5 @@
+//! Provides functionality for loading and processing datasets.
+
 pub mod builder;
 pub mod loader;
 pub mod point;

@@ -1,3 +1,5 @@
+//! Provides functionality for creating kernels, as well as pre-defined kernel generators.
+
 use crate::kernel::generator::KernelGenerator;
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
@@ -175,6 +177,7 @@ impl MulAssign for Kernel {
     }
 }
 
+/// A macro that allows quick creation of a custom kernel.
 #[macro_export]
 macro_rules! kernel {
     ($($x:expr),+) => {{

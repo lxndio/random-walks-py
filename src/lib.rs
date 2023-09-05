@@ -1,6 +1,6 @@
 //! A library for efficient movement interpolation using different random walk models.
-//! Below is an overview of all important types and functions, as well as a short introduction
-//! on how to use the library.
+//! Below is an overview of all important types and functions, a short guide on how to get started
+//! using the library, as well as some examples.
 //!
 //! # Walk Models
 //! This library implements different random walk models which can be used to generate
@@ -52,13 +52,35 @@
 //! allows multiple steps to be made at once, making use of dynamic programs that were generated
 //! with kernels larger than 3x3.
 //!
-//! # Dataset functionality
+//! # Dataset Functionality
 //!
 //! [`Dataset`s](dataset::Dataset) allow automatic generation of random walks based on many
-//! location points. A dataset can be loaded from a file using the
-//! [`CSVLoader`](dataset::loader::csv::CSVLoader). When the `polars` feature is enabled, datasets
-//! can also be loaded from Polars `DataFrame`s using the
-//! [`PolarsLoader`](dataset::loader::polars::PolarsLoader).
+//! location points. The easiest way to load or generate a dataset is using the
+//! [`DatasetBuilder`](dataset::builder::DatasetBuilder). Using the builder, a dataset can be
+//! generated or loaded from a CSV file or a Polars `DataFrame` (if `polars` feature is enabled).
+//!
+//! See the documentation of `Dataset` for more information on how to work with datasets. There
+//! are different functions to modify, e.g. filter, datasets. Single random walks can be generated
+//! using the function [`rw_between`](dataset::Dataset::rw_between). To generate many random
+//! walks at once, use the [`DatasetWalksBuilder`](dataset::DatasetWalksBuilder).
+//!
+//! # Getting Started
+//!
+//! The normal workflow when using this library may be as follows:
+//!
+//! 1. Building and computing a dynamic program
+//! 2. Loading a dataset
+//! 3. Processing the dataset
+//! 4. Generating random walks between points of the dataset
+//!
+//! Step 1 can be accomplished by using the
+//! [`DynamicProgramBuilder`](dp::builder::DynamicProgramBuilder). Using that, a kernel for a
+//! specific walk model can also be specified. For step 2, the
+//! [`DatasetBuilder`](dataset::builder::DatasetBuilder) may be used. Step 3 may consist of
+//! converting the coordinates in the dataset from GCS to XY coordinates, filtering for specific
+//! entries and shrinking the dataset for better workability. See the documentation on
+//! [`Dataset`s](dataset::Dataset) for further information on how to perform these tasks. For
+//! step 4, the [`DatasetWalksBuilder`](dataset::DatasetWalksBuilder) can be used.
 //!
 //! # Examples
 //!
@@ -94,12 +116,28 @@
 //!
 //! ## Loading and using a dataset
 //!
-//! This example shows how to load a dataset, do some simple preprocessing, and compute random
-//! walks between its data points. Assume that `dp` is a dynamic program that has already been
-//! computed, e.g. as seen in the example above.
+//! This example shows how to load a dataset, do some simple preprocessing, and compute a random
+//! walk between its first and second datapoint in 400 time steps. Assume that `dp` is a dynamic
+//! program that has already been computed, e.g. as seen in the example above.
 //!
 //! ```
+//! use randomwalks_lib::dataset::builder::DatasetBuilder;
+//! use randomwalks_lib::dataset::loader::{ColumnAction, CoordinateType};
+//! use randomwalks_lib::walker::standard::StandardWalker;
 //!
+//! let mut dataset = DatasetBuilder::new()
+//!     .from_csv("dataset.csv")
+//!     .add_column_actions(vec![
+//!         ColumnAction::KeepX,
+//!         ColumnAction::KeepY,
+//!         ColumnAction::KeepMetadata("agent_id")
+//!     ])
+//!     .coordinate_type(CoordinateType::XY)
+//!     .build()
+//!     .unwrap();
+//!
+//! let walker = StandardWalker;
+//! let walk = dataset.rw_between(&dp, Box::new(walker), 0, 1, 400);
 //! ```
 //!
 

@@ -1,7 +1,7 @@
-use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};
+use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader, DatasetLoaderError};
 use crate::dataset::point::{GCSPoint, Point, XYPoint};
 use crate::dataset::Datapoint;
-use anyhow::Context;
+use anyhow::{bail, Context};
 use polars::frame::DataFrame;
 use std::collections::HashMap;
 use std::io::ErrorKind;
@@ -35,8 +35,14 @@ impl PolarsLoader {
 
 impl DatasetLoader for PolarsLoader {
     fn load(&self) -> anyhow::Result<Vec<Datapoint>> {
-        let mut data = Vec::new();
+        if !self.options.column_actions.contains(&ColumnAction::KeepX) {
+            bail!(DatasetLoaderError::NoXColumnSpecified);
+        }
+        if !self.options.column_actions.contains(&ColumnAction::KeepY) {
+            bail!(DatasetLoaderError::NoYColumnSpecified);
+        }
 
+        let mut data = Vec::new();
         let cols = self.options.df.get_columns();
 
         for series in 0..self.options.df.iter().len() {
@@ -46,11 +52,7 @@ impl DatasetLoader for PolarsLoader {
                 .collect::<Vec<_>>();
 
             if series.len() != self.options.column_actions.len() {
-                return Err(std::io::Error::from(ErrorKind::InvalidData)).context(format!(
-                    "Expected {} columns, got {}.",
-                    self.options.column_actions.len(),
-                    series.len()
-                ));
+                bail!(DatasetLoaderError::MoreColumnsThanActions);
             }
 
             let mut point = match self.options.coordinate_type {

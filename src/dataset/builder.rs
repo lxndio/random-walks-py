@@ -1,3 +1,7 @@
+//! Provides a builder for datasets.
+//!
+//! This module provides the [`DatasetBuilder`](DatasetBuilder)
+
 use crate::dataset::loader::csv::{CSVLoader, CSVLoaderOptions};
 use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};

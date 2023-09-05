@@ -126,6 +126,7 @@ impl ToString for XYPoint {
     }
 }
 
+/// A macro that allows quick creation of an [`XYPoint`](XYPoint).
 #[macro_export]
 macro_rules! xy {
     ($x:expr, $y:expr) => {

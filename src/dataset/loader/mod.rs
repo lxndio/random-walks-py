@@ -5,6 +5,7 @@ pub mod polars;
 use crate::dataset::Datapoint;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 pub trait DatasetLoader {
     fn load(&self) -> anyhow::Result<Vec<Datapoint>>;
@@ -12,6 +13,16 @@ pub trait DatasetLoader {
     fn stream(&self) -> anyhow::Result<()>;
 
     fn coordinate_type(&self) -> CoordinateType;
+}
+
+#[derive(Error, Debug)]
+pub enum DatasetLoaderError {
+    #[error("a column containing X coordinates must be specified")]
+    NoXColumnSpecified,
+    #[error("a column containing Y coordinates must be specified")]
+    NoYColumnSpecified,
+    #[error("there are more columns in the dataset than actions have been set")]
+    MoreColumnsThanActions,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
