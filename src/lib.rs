@@ -28,9 +28,9 @@
 //! There are two different types of dynamic programs which compute the random walk probabilities.
 //! They are listed below together with short descriptions.
 //!
-//! - [Simple dynamic program](dp::simple::SimpleDynamicProgram): A dynamic program that uses a
+//! - [`SimpleDynamicProgram`](dp::simple::SimpleDynamicProgram): A dynamic program that uses a
 //! single kernel to compute the probabilities.
-//! - [Multi dynamic program](dp::multi::MultiDynamicProgram): A dynamic program that uses multiple
+//! - [`MultiDynamicProgram`](dp::multi::MultiDynamicProgram): A dynamic program that uses multiple
 //! kernels to compute the probabilities. This is for example required when using correlated
 //! random walks.
 //!
@@ -40,9 +40,67 @@
 //!
 //! # Walkers
 //!
+//! Walkers generate random walks on the basis of a previously computed dynamic program. There
+//! are three different walkers available which do slightly different things.
+//!
+//! - [`StandardWalker`](walker::standard::StandardWalker): The standard walker for generating
+//! random walks that works with all kernels using the `SimpleDynamicProgram`.
+//! - [`CorrelatedWalker`](walker::correlated::CorrelatedWalker): A special walker that is designed
+//! to work with the `MultiDynamicProgram` using kernels for correlated random walks. In each step,
+//! it chooses a different dynamic program table depending on the direction of the last step.
+//! - [`MultiStepWalker`](walker::multi_step::MultiStepWalker): Like the `StandardWalker` but it
+//! allows multiple steps to be made at once, making use of dynamic programs that were generated
+//! with kernels larger than 3x3.
+//!
 //! # Dataset functionality
 //!
+//! [`Dataset`s](dataset::Dataset) allow automatic generation of random walks based on many
+//! location points. A dataset can be loaded from a file using the
+//! [`CSVLoader`](dataset::loader::csv::CSVLoader). When the `polars` feature is enabled, datasets
+//! can also be loaded from Polars `DataFrame`s using the
+//! [`PolarsLoader`](dataset::loader::polars::PolarsLoader).
+//!
 //! # Examples
+//!
+//! These examples should give a brief overview of the framework's functionality and give the user
+//! a starting point to working with it. More detailed examples can be found on the documentation
+//! pages of different features.
+//!
+//! ## Generating a random walk
+//!
+//! This example shows how to build and compute a dynamic program, and how to use it to generate
+//! a random walk from the origin `(0, 0)` to `(100, 50)` in 400 time steps.
+//!
+//! ```
+//! use randomwalks_lib::dp::builder::DynamicProgramBuilder;
+//! use randomwalks_lib::dp::DynamicPrograms;
+//! use randomwalks_lib::kernel::Kernel;
+//! use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
+//! use randomwalks_lib::walker::standard::StandardWalker;
+//! use randomwalks_lib::walker::Walker;
+//!
+//! let mut dp = DynamicProgramBuilder::new()
+//!     .simple()
+//!     .time_limit(400)
+//!     .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+//!     .build()
+//!     .unwrap();
+//!
+//! dp.compute();
+//!
+//! let walker = StandardWalker;
+//! let walk = walker.generate_path(&dp, 100, 50, 400).unwrap();
+//! ```
+//!
+//! ## Loading and using a dataset
+//!
+//! This example shows how to load a dataset, do some simple preprocessing, and compute random
+//! walks between its data points. Assume that `dp` is a dynamic program that has already been
+//! computed, e.g. as seen in the example above.
+//!
+//! ```
+//!
+//! ```
 //!
 
 pub mod dataset;

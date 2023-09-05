@@ -12,7 +12,7 @@ pub struct CSVLoaderOptions {
     pub path: String,
     pub delimiter: u8,
     pub header: bool,
-    pub column_actions: Vec<ColumnAction>,
+    pub column_actions: Vec<ColumnAction<String>>,
     pub coordinate_type: CoordinateType,
 }
 
@@ -77,7 +77,7 @@ impl DatasetLoader for CSVLoader {
                         }
                     }
                     ColumnAction::KeepMetadata(key) => {
-                        metadata.insert(key.clone(), column.to_string());
+                        metadata.insert(key.into(), column.into());
                     }
                     ColumnAction::Discard => (),
                 }

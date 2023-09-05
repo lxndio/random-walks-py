@@ -9,7 +9,7 @@ use std::io::ErrorKind;
 #[derive(Debug)]
 pub struct PolarsLoaderOptions {
     pub df: DataFrame,
-    pub column_actions: Vec<ColumnAction>,
+    pub column_actions: Vec<ColumnAction<String>>,
     pub coordinate_type: CoordinateType,
 }
 
@@ -120,7 +120,7 @@ mod tests {
         let loader = PolarsLoader::new(PolarsLoaderOptions {
             df,
             column_actions: vec![
-                ColumnAction::KeepMetadata("agent_id".into()),
+                ColumnAction::KeepMetadata("agent_id"),
                 ColumnAction::KeepX,
                 ColumnAction::KeepY,
                 ColumnAction::Discard,
