@@ -21,16 +21,25 @@ impl KernelGenerator for LevyWalkGenerator {
             .get_mut(0)
             .ok_or::<String>("No kernel for generation.".into())?;
 
-        for i in 0..kernel.size() {
-            kernel.set((i - kernel.size() / 2) as isize, 0, 0.1);
-            kernel.set(0, (i - kernel.size() / 2) as isize, 0.1);
-        }
+        // for i in 0..kernel.size() {
+        //     kernel.set((i - kernel.size() / 2) as isize, 0, 0.1);
+        //     kernel.set(0, (i - kernel.size() / 2) as isize, 0.1);
+        // }
+
+        kernel.set(-10, 0, 0.05);
+        kernel.set(10, 0, 0.05);
+        kernel.set(0, -10, 0.05);
+        kernel.set(0, 10, 0.05);
 
         kernel.set(0, 0, 0.2);
         kernel.set(-1, 0, 0.2);
         kernel.set(1, 0, 0.2);
         kernel.set(0, -1, 0.2);
         kernel.set(0, 1, 0.2);
+        // kernel.set(-1, -1, 0.2);
+        // kernel.set(1, 1, 0.2);
+        // kernel.set(-1, 1, 0.2);
+        // kernel.set(1, -1, 0.2);
 
         Ok(())
     }
