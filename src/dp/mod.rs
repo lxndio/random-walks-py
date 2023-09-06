@@ -9,14 +9,13 @@
 //! There are two different types of dynamic programs which compute the random walk probabilities.
 //! They are listed below together with short descriptions.
 //!
-//! - [`SimpleDynamicProgram`](dp::simple::SimpleDynamicProgram): A dynamic program that uses a
-//! single kernel to compute the probabilities.
-//! - [`MultiDynamicProgram`](dp::multi::MultiDynamicProgram): A dynamic program that uses multiple
-//! kernels to compute the probabilities. This is for example required when using correlated
-//! random walks.
+//! - [`SimpleDynamicProgram`]: A dynamic program that uses a single kernel to compute the
+//! probabilities.
+//! - [`MultiDynamicProgram`]: A dynamic program that uses multiple kernels to compute the
+//! probabilities. This is for example required when using correlated random walks.
 //!
-//! Dynamic programs are wrapped into the [`DynamicProgram`](dp::DynamicProgram) enum and must
-//! implement the [`DynamicPrograms`](dp::DynamicPrograms) trait.
+//! Dynamic programs are wrapped into the [`DynamicProgram`] enum and must
+//! implement the [`DynamicPrograms`] trait.
 //!
 //! # Examples
 //!
