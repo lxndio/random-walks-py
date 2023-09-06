@@ -14,9 +14,9 @@
 //! ```
 //! # use randomwalks_lib::dataset::Dataset;
 //! # use randomwalks_lib::dataset::loader::CoordinateType;
-//!
+//! #
 //! # let mut dataset = Dataset::new(CoordinateType::XY);
-//!
+//! #
 //! dataset.keep(Some(1000), Some(2001));
 //! ```
 //!
@@ -34,9 +34,9 @@
 //! # use randomwalks_lib::dataset::{Dataset, DatasetFilter};
 //! # use randomwalks_lib::dataset::loader::CoordinateType;
 //! # use randomwalks_lib::xy;
-//!
+//! #
 //! # let mut dataset = Dataset::new(CoordinateType::XY);
-//!
+//! #
 //! dataset.filter(vec![
 //!     DatasetFilter::ByCoordinates(Point::XY(xy!(100, 100)), Point::XY(xy!(500, 500)));
 //! ]).unwrap();
@@ -51,9 +51,9 @@
 //! ```
 //! # use randomwalks_lib::dataset::Dataset;
 //! # use randomwalks_lib::dataset::loader::CoordinateType;
-//!
+//! #
 //! # let mut dataset = Dataset::new(CoordinateType::XY);
-//!
+//! #
 //! dataset.convert_gcs_to_xy(-10000, 10000).unwrap();
 //! ```
 //!
@@ -81,7 +81,7 @@
 //! # use randomwalks_lib::kernel::Kernel;
 //! # use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
 //! # use randomwalks_lib::walker::standard::StandardWalker;
-//!
+//! #
 //! # let dataset = Dataset::new(CoordinateType::XY);
 //! # let dp = DynamicProgramBuilder::new()
 //! #     .simple()
@@ -90,7 +90,7 @@
 //! #     .build()
 //! #     .unwrap();
 //! # let walker = Box::new(StandardWalker);
-//!
+//! #
 //! let path = dataset.rw_between(&dp, walker, 0, 1, 400).unwrap();
 //! ```
 //! It is also possible to generate many random walks between different pairs of points at once.
@@ -111,7 +111,7 @@
 //! # use randomwalks_lib::kernel::Kernel;
 //! # use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
 //! # use randomwalks_lib::walker::standard::StandardWalker;
-//!
+//! #
 //! # let dataset = Dataset::new(CoordinateType::XY);
 //! # let dp = DynamicProgramBuilder::new()
 //! #     .simple()
@@ -120,7 +120,7 @@
 //! #     .build()
 //! #     .unwrap();
 //! # let walker = Box::new(StandardWalker);
-//!
+//! #
 //! let paths = DatasetWalksBuilder::new()
 //!     .dataset(&dataset)
 //!     .dp(&dp)

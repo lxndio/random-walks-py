@@ -1,4 +1,72 @@
 //! Provides the dynamic programs required to compute random walks.
+//!
+//! This library contains different dynamic programs which must be computed using some specified
+//! kernel. After the computation, random walks can be generated using the tables of the dynamic
+//! program.
+//!
+//! # Types
+//!
+//! There are two different types of dynamic programs which compute the random walk probabilities.
+//! They are listed below together with short descriptions.
+//!
+//! - [`SimpleDynamicProgram`](dp::simple::SimpleDynamicProgram): A dynamic program that uses a
+//! single kernel to compute the probabilities.
+//! - [`MultiDynamicProgram`](dp::multi::MultiDynamicProgram): A dynamic program that uses multiple
+//! kernels to compute the probabilities. This is for example required when using correlated
+//! random walks.
+//!
+//! Dynamic programs are wrapped into the [`DynamicProgram`](dp::DynamicProgram) enum and must
+//! implement the [`DynamicPrograms`](dp::DynamicPrograms) trait.
+//!
+//! # Examples
+//!
+//! ## Creating a Dynamic Program
+//!
+//! Dynamic programs can be created using the
+//! [`DynamicProgramBuilder`](builder::DynamicProgramBuilder). It offers different options for
+//! dynamic programs which are described in detail in the [`builder`] module. The general structure,
+//! however, looks like this:
+//!
+//! ```
+//! use randomwalks_lib::dp::builder::DynamicProgramBuilder;
+//! use randomwalks_lib::kernel::Kernel;
+//! use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
+//!
+//! let dp = DynamicProgramBuilder::new()
+//!     .simple()
+//!     .time_limit(400)
+//!     .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+//!     .build()
+//!     .unwrap();
+//! ```
+//!
+//! In this example, a [`SimpleDynamicProgram`] is created with a time limit of 400 time steps.
+//! As can be seen, a [`Kernel`](crate::kernel::Kernel) must be specified. More information on
+//! kernels can be found in the documentation of the [`kernel`](crate::kernel) module.
+//!
+//! ## Computation
+//!
+//! After creation, a dynamic program is initialized but the actual values are not yet computed.
+//! To do the computation,
+//!
+//! ```
+//! # use randomwalks_lib::dp::builder::DynamicProgramBuilder;
+//! # use randomwalks_lib::dp::DynamicPrograms;
+//! # use randomwalks_lib::kernel::Kernel;
+//! # use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
+//! #
+//! # let mut dp = DynamicProgramBuilder::new()
+//! #     .simple()
+//! #     .time_limit(400)
+//! #     .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+//! #     .build()
+//! #     .unwrap();
+//! #
+//! dp.compute();
+//! ```
+//!
+//! can be run.
+//!
 
 use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::simple::SimpleDynamicProgram;
