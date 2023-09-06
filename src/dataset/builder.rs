@@ -69,6 +69,7 @@
 //!
 
 use crate::dataset::loader::csv::{CSVLoader, CSVLoaderOptions};
+#[cfg(feature = "polars")]
 use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};
 use crate::dataset::point::{Coordinates, Point, XYPoint};
@@ -98,6 +99,7 @@ pub enum DatasetBuilderError {
 #[derive(Default)]
 enum DatasetSource {
     CSV(String),
+    #[cfg(feature = "polars")]
     Polars(DataFrame),
     Manual,
     #[default]
@@ -282,6 +284,7 @@ impl DatasetBuilder {
 
                 Dataset::from_loader(loader)
             }
+            #[cfg(feature = "polars")]
             DatasetSource::Polars(df) => {
                 let loader = PolarsLoader::new(PolarsLoaderOptions {
                     df,

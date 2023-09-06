@@ -5,6 +5,7 @@ pub mod levy;
 pub mod multi_step;
 pub mod standard;
 
+use crate::dataset::point::{Point, XYPoint};
 use crate::dp::DynamicProgram;
 use geo::algorithm::frechet_distance::FrechetDistance;
 use geo::{line_string, Coord, LineString};
@@ -38,6 +39,76 @@ impl Walk {
         ];
 
         self_line.frechet_distance(&other_line)
+    }
+
+    /// Translates all points of a walk.
+    ///
+    /// ```
+    /// # use randomwalks_lib::walker::Walk;
+    /// # use randomwalks_lib::dataset::point::XYPoint;
+    /// # use randomwalks_lib::xy;
+    ///
+    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).translate(xy!(5, 1));
+    /// let walk2 = Walk(vec![(5, 1), (7, 4), (12, 6)]);
+    ///
+    /// assert_eq!(walk1, walk2);
+    /// ```
+    pub fn translate(&self, by: XYPoint) -> Walk {
+        Walk(
+            self.0
+                .iter()
+                .map(|(x, y)| (x + by.x as isize, y + by.y as isize))
+                .collect(),
+        )
+    }
+
+    /// Scales all points of a walk.
+    ///
+    /// ```
+    /// # use randomwalks_lib::walker::Walk;
+    /// # use randomwalks_lib::dataset::point::XYPoint;
+    /// # use randomwalks_lib::xy;
+    ///
+    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).scale(xy!(2, 1));
+    /// let walk2 = Walk(vec![(0, 0), (4, 3), (14, 5)]);
+    ///
+    /// assert_eq!(walk1, walk2);
+    /// ```
+    pub fn scale(&self, by: XYPoint) -> Walk {
+        Walk(
+            self.0
+                .iter()
+                .map(|(x, y)| (x * by.x as isize, y * by.y as isize))
+                .collect(),
+        )
+    }
+
+    /// Rotates all points of a walk around the origin.
+    ///
+    /// ```
+    /// # use randomwalks_lib::walker::Walk;
+    /// # use randomwalks_lib::dataset::point::XYPoint;
+    /// # use randomwalks_lib::xy;
+    ///
+    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).rotate(90.0);
+    /// let walk2 = Walk(vec![(0, 0), (-3, 2), (-5, 7)]);
+    ///
+    /// assert_eq!(walk1, walk2);
+    /// ```
+    pub fn rotate(&self, degrees: f64) -> Walk {
+        let rad = degrees.to_radians();
+
+        Walk(
+            self.0
+                .iter()
+                .map(|(x, y)| {
+                    (
+                        (*x as f64 * rad.cos() - *y as f64 * rad.sin()) as isize,
+                        (*y as f64 * rad.cos() + *x as f64 * rad.sin()) as isize,
+                    )
+                })
+                .collect(),
+        )
     }
 }
 
@@ -122,4 +193,35 @@ pub enum WalkerError {
 
     #[error("no path exists")]
     NoPathExists,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dataset::point::XYPoint;
+    use crate::walker::Walk;
+    use crate::xy;
+
+    #[test]
+    fn test_walk_translate() {
+        let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).translate(xy!(5, 1));
+        let walk2 = Walk(vec![(5, 1), (7, 4), (12, 6)]);
+
+        assert_eq!(walk1, walk2);
+    }
+
+    #[test]
+    fn test_walk_scale() {
+        let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).scale(xy!(2, 1));
+        let walk2 = Walk(vec![(0, 0), (4, 3), (14, 5)]);
+
+        assert_eq!(walk1, walk2);
+    }
+
+    #[test]
+    fn test_walk_rotate() {
+        let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).rotate(90.0);
+        let walk2 = Walk(vec![(0, 0), (-3, 2), (-5, 7)]);
+
+        assert_eq!(walk1, walk2);
+    }
 }
