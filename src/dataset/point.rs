@@ -26,6 +26,17 @@ impl Coordinates<f64> for GCSPoint {
     }
 }
 
+impl TryFrom<Point> for GCSPoint {
+    type Error = ();
+
+    fn try_from(value: Point) -> Result<Self, Self::Error> {
+        match value {
+            Point::GCS(p) => Ok(p),
+            Point::XY(_) => Err(()),
+        }
+    }
+}
+
 impl From<(f64, f64)> for GCSPoint {
     fn from(value: (f64, f64)) -> Self {
         Self {
@@ -83,6 +94,17 @@ impl Coordinates<i64> for XYPoint {
 
     fn y(&self) -> i64 {
         self.y
+    }
+}
+
+impl TryFrom<Point> for XYPoint {
+    type Error = ();
+
+    fn try_from(value: Point) -> Result<Self, Self::Error> {
+        match value {
+            Point::GCS(_) => Err(()),
+            Point::XY(p) => Ok(p),
+        }
     }
 }
 
@@ -182,6 +204,18 @@ impl Coordinates<i64> for Point {
             Self::GCS(_) => panic!("GCS points use f64 instead of i64."),
             Self::XY(point) => point.y,
         }
+    }
+}
+
+impl From<GCSPoint> for Point {
+    fn from(value: GCSPoint) -> Self {
+        Point::GCS(value)
+    }
+}
+
+impl From<XYPoint> for Point {
+    fn from(value: XYPoint) -> Self {
+        Point::XY(value)
     }
 }
 
