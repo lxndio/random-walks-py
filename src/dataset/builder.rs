@@ -69,13 +69,14 @@
 //!
 
 use crate::dataset::loader::csv::{CSVLoader, CSVLoaderOptions};
-#[cfg(feature = "polars_loading")]
 use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};
 use crate::dataset::point::{Coordinates, Point, XYPoint};
 use crate::dataset::{loader, Datapoint, Dataset};
 use crate::xy;
 use anyhow::bail;
+#[cfg(feature = "polars_loading")]
+use polars::prelude::DataFrame;
 use rand::Rng;
 use std::collections::HashMap;
 use thiserror::Error;

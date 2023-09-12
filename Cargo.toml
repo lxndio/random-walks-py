@@ -26,6 +26,8 @@ polars = { version = "0.32.1", features = ["rows"], optional = true }
 criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [features]
+default = ["plotting", "polars_loading"]
+
 plotting = ["plotters"]
 polars_loading = ["polars"]
 

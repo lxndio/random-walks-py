@@ -7,9 +7,15 @@ pub mod standard;
 
 use crate::dataset::point::{Point, XYPoint};
 use crate::dp::DynamicProgram;
+use anyhow::{bail, Context};
 use geo::algorithm::frechet_distance::FrechetDistance;
 use geo::{line_string, Coord, LineString};
-use std::ops::Index;
+use plotters::coord::types::RangedCoordi64;
+#[cfg(feature = "plotting")]
+use plotters::prelude::*;
+use rand::Rng;
+use std::collections::HashSet;
+use std::ops::{Index, Range};
 use thiserror::Error;
 
 #[derive(Default, Debug, Clone, PartialEq)]
@@ -110,6 +116,130 @@ impl Walk {
                 .collect(),
         )
     }
+
+    #[cfg(feature = "plotting")]
+    pub fn plot<S: Into<String>>(&self, filename: S) -> anyhow::Result<()> {
+        if self.0.is_empty() {
+            bail!("Cannot plot empty walk");
+        }
+
+        let filename = filename.into();
+
+        // Initialize plot
+
+        let (coordinate_range_x, coordinate_range_y) = point_range(&vec![self.clone()]);
+
+        let root = BitMapBackend::new(&filename, (1000, 1000)).into_drawing_area();
+        root.fill(&WHITE).unwrap();
+        let root = root.margin(10, 10, 10, 10);
+
+        let mut chart = ChartBuilder::on(&root)
+            .x_label_area_size(20)
+            .y_label_area_size(20)
+            .build_cartesian_2d(coordinate_range_x, coordinate_range_y)?;
+
+        chart.configure_mesh().draw()?;
+
+        // Draw walk
+
+        chart.draw_series(LineSeries::new(self.0.clone(), &BLACK))?;
+
+        // Draw start and end point
+
+        chart.draw_series(PointSeries::of_element(
+            vec![*self.0.first().unwrap(), *self.0.last().unwrap()],
+            5,
+            &BLACK,
+            &|c, s, st| {
+                EmptyElement::at(c)
+                    + Circle::new((0, 0), s, st.filled())
+                    + Text::new(format!("{:?}", c), (10, 0), ("sans-serif", 10).into_font())
+            },
+        ))?;
+
+        Ok(())
+    }
+
+    pub fn plot_multiple<S: Into<String>>(walks: &Vec<Walk>, filename: S) -> anyhow::Result<()> {
+        let filename = filename.into();
+
+        // Initialize plot
+
+        let (coordinate_range_x, coordinate_range_y) = point_range(walks);
+
+        let root = BitMapBackend::new(&filename, (1000, 1000)).into_drawing_area();
+        root.fill(&WHITE).unwrap();
+        let root = root.margin(10, 10, 10, 10);
+
+        let mut chart = ChartBuilder::on(&root)
+            .x_label_area_size(20)
+            .y_label_area_size(20)
+            .build_cartesian_2d(coordinate_range_x, coordinate_range_y)?;
+
+        chart.configure_mesh().draw()?;
+
+        // Draw walks
+
+        let walks: Vec<Vec<(isize, isize)>> = walks.iter().map(|x| x.0.clone()).collect();
+        let mut rng = rand::thread_rng();
+
+        for walk in walks.iter() {
+            chart.draw_series(LineSeries::new(
+                walk.clone(),
+                RGBColor(
+                    rng.gen_range(30..220),
+                    rng.gen_range(30..220),
+                    rng.gen_range(30..220),
+                ),
+            ))?;
+        }
+
+        // Find unique start and end points
+
+        let mut se_points = HashSet::new();
+
+        for walk in walks.iter() {
+            se_points.insert((
+                walk.first().copied().unwrap(),
+                walk.last().copied().unwrap(),
+            ));
+        }
+
+        // Draw start and end points
+
+        for (start, end) in se_points {
+            chart.draw_series(PointSeries::of_element(
+                vec![start, end],
+                5,
+                &BLACK,
+                &|c, s, st| {
+                    EmptyElement::at(c)
+                        + Circle::new((0, 0), s, st.filled())
+                        + Text::new(format!("{:?}", c), (10, 0), ("sans-serif", 10).into_font())
+                },
+            ))?;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(feature = "plotting")]
+fn point_range(walks: &Vec<Walk>) -> (Range<isize>, Range<isize>) {
+    // Compute size of plotting area
+
+    let points: Vec<_> = walks.iter().map(|x| &x.0).flatten().copied().collect();
+
+    let xs: Vec<isize> = points.iter().map(|(x, _)| x).copied().collect();
+    let ys: Vec<isize> = points.iter().map(|(_, y)| y).copied().collect();
+
+    let x_range = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
+    let y_range = (*ys.iter().min().unwrap(), *ys.iter().max().unwrap());
+
+    let coordinate_range_x = x_range.0 - 5..x_range.1 + 5;
+    let coordinate_range_y = y_range.1 + 5..y_range.0 - 5;
+
+    (coordinate_range_x, coordinate_range_y)
 }
 
 impl From<Vec<(isize, isize)>> for Walk {
