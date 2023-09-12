@@ -7,15 +7,14 @@ use num::Zero;
 #[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use std::fmt::Debug;
-#[cfg(feature = "saving")]
-use std::fs::File;
-use std::io::{BufReader, Read};
-#[cfg(feature = "saving")]
-use std::io::{BufWriter, Write};
 use std::time::Instant;
-use zstd::Decoder;
 #[cfg(feature = "saving")]
-use zstd::Encoder;
+use {
+    std::fs::File,
+    std::io::{BufReader, Read},
+    std::io::{BufWriter, Write},
+    zstd::{Decoder, Encoder},
+};
 
 pub struct SimpleDynamicProgram {
     pub(crate) table: Vec<Vec<Vec<f64>>>,
@@ -82,10 +81,11 @@ impl SimpleDynamicProgram {
     #[cfg(feature = "saving")]
     pub fn load(filename: String) -> anyhow::Result<DynamicProgram> {
         let file = File::open(filename)?;
-        let mut reader = BufReader::new(file);
+        let reader = BufReader::new(file);
+        let mut decoder = Decoder::new(reader).context("could not create decoder")?;
 
         let mut time_limit = [0u8; 8];
-        let time_limit = match reader.read_exact(&mut time_limit) {
+        let time_limit = match decoder.read_exact(&mut time_limit) {
             Ok(()) => u64::from_le_bytes(time_limit),
             Err(_) => bail!("could not read time limit from file"),
         };
@@ -100,12 +100,9 @@ impl SimpleDynamicProgram {
         };
 
         let (limit_neg, limit_pos) = dp.limits();
-
-        let mut decoder = Decoder::new(reader).context("could not create decoder")?;
-
         let mut buf = [0u8; 8];
 
-        for t in 0..limit_pos as usize {
+        for t in 0..=limit_pos as usize {
             for x in limit_neg..=limit_pos {
                 for y in limit_neg..=limit_pos {
                     decoder.read_exact(&mut buf)?;
@@ -227,11 +224,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
     fn save(&self, filename: String) -> anyhow::Result<()> {
         let (limit_neg, limit_pos) = self.limits();
         let file = File::create(filename)?;
-        let mut writer = BufWriter::new(file);
-
-        writer.write(&(self.time_limit as u64).to_le_bytes())?;
-        writer.flush()?;
-
+        let writer = BufWriter::new(file);
         let mut encoder = Encoder::new(writer, 9).context("could not create encoder")?;
 
         encoder
@@ -240,7 +233,9 @@ impl DynamicPrograms for SimpleDynamicProgram {
 
         let mut encoder = encoder.auto_finish();
 
-        for t in 0..limit_pos as usize {
+        encoder.write(&(self.time_limit as u64).to_le_bytes())?;
+
+        for t in 0..=limit_pos as usize {
             for x in limit_neg..=limit_pos {
                 for y in limit_neg..=limit_pos {
                     encoder.write(&self.at(x, y, t).to_le_bytes())?;
@@ -248,7 +243,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
             }
         }
 
-        for x in limit_neg..limit_pos {
+        for x in limit_neg..=limit_pos {
             for y in limit_neg..=limit_pos {
                 encoder.write(&self.field_probability_at(x, y).to_le_bytes())?;
             }
@@ -269,7 +264,9 @@ impl Debug for SimpleDynamicProgram {
 
 impl PartialEq for SimpleDynamicProgram {
     fn eq(&self, other: &Self) -> bool {
-        self.time_limit == other.time_limit && self.table == other.table
+        self.time_limit == other.time_limit
+            && self.table == other.table
+            && self.field_probabilities == other.field_probabilities
     }
 }
 
