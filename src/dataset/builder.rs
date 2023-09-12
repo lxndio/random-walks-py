@@ -71,8 +71,8 @@
 use crate::dataset::loader::csv::{CSVLoader, CSVLoaderOptions};
 use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};
-use crate::dataset::point::{Coordinates, Point, XYPoint};
-use crate::dataset::{loader, Datapoint, Dataset};
+use crate::dataset::point::{Point, XYPoint};
+use crate::dataset::{Datapoint, Dataset};
 use crate::xy;
 use anyhow::bail;
 #[cfg(feature = "polars_loading")]

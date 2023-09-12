@@ -115,12 +115,11 @@ impl DynamicPrograms for SimpleDynamicProgram {
         let iter = self.table[t]
             .iter()
             .enumerate()
-            .map(|(x, l)| {
+            .flat_map(|(x, l)| {
                 l.iter().enumerate().map(move |(y, v)| {
                     (x as i32 - limit_pos as i32, y as i32 - limit_pos as i32, v)
                 })
-            })
-            .flatten();
+            });
 
         let min = iter
             .clone()

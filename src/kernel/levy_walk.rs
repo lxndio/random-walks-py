@@ -1,7 +1,5 @@
-use crate::kernel;
 use crate::kernel::generator::KernelGenerator;
 use crate::kernel::Kernel;
-use std::ops::DerefMut;
 
 pub struct LevyWalkGenerator {}
 

@@ -14,7 +14,7 @@ impl MultiDynamicProgram {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
 
-        self.table[t][variant][x][y].clone()
+        self.table[t][variant][x][y]
     }
 
     pub fn set(&mut self, x: isize, y: isize, t: usize, variant: usize, val: f64) {

@@ -480,7 +480,7 @@ impl Dataset {
 
         let walk = walker
             .generate_path(
-                &dp,
+                dp,
                 translated_to.x as isize,
                 translated_to.y as isize,
                 time_steps,
@@ -514,7 +514,7 @@ impl Dataset {
         let mut edges = HashMap::new();
 
         let important_vs: Vec<XYPoint> = Bresenham::new(from.into(), to.into())
-            .map(|x| XYPoint::from(x))
+            .map(XYPoint::from)
             .collect();
 
         for x in min_x..=max_x {
@@ -1007,7 +1007,7 @@ impl<'a> DatasetWalksBuilder<'a> {
                 let walker = StandardWalker;
                 walks.push(
                     dataset
-                        .rw_between(&dp, Box::new(walker), i, i + 1, time_steps)
+                        .rw_between(dp, Box::new(walker), i, i + 1, time_steps)
                         .context("could not generate walk")?,
                 );
             }

@@ -160,10 +160,10 @@ impl Walk {
 
         // Draw walk
 
-        let walk: Vec<(i64, i64)> = self.0.iter().map(|x| x.clone().into()).collect();
+        let walk: Vec<(i64, i64)> = self.0.iter().map(|x| (*x).into()).collect();
 
         chart.draw_series(LineSeries::new(
-            walk.iter().copied().collect::<Vec<_>>(),
+            walk.to_vec(),
             &BLACK,
         ))?;
 
@@ -268,7 +268,7 @@ impl Walk {
 fn point_range(walks: &Vec<Walk>) -> (Range<i64>, Range<i64>) {
     // Compute size of plotting area
 
-    let points: Vec<_> = walks.iter().map(|x| &x.0).flatten().copied().collect();
+    let points: Vec<_> = walks.iter().flat_map(|x| &x.0).copied().collect();
 
     let xs: Vec<i64> = points.iter().map(|p| p.x).collect();
     let ys: Vec<i64> = points.iter().map(|p| p.y).collect();
@@ -301,7 +301,7 @@ impl From<&Walk> for LineString<f64> {
                 .0
                 .iter()
                 .map(|p| (p.x as f64, p.y as f64))
-                .map(|p| Coord::from(p))
+                .map(Coord::from)
                 .collect(),
         )
     }

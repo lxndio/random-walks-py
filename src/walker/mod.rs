@@ -5,17 +5,8 @@ pub mod levy;
 pub mod multi_step;
 pub mod standard;
 
-use crate::dataset::point::XYPoint;
 use crate::dp::DynamicProgram;
 use crate::walk::Walk;
-use anyhow::{bail, Context};
-use geo::algorithm::frechet_distance::FrechetDistance;
-use geo::{line_string, Coord, LineString};
-#[cfg(feature = "plotting")]
-use plotters::prelude::*;
-use rand::Rng;
-use std::collections::HashSet;
-use std::ops::{Index, Range};
 use thiserror::Error;
 
 pub trait Walker {

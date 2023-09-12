@@ -3,7 +3,6 @@ pub mod csv;
 pub mod polars;
 
 use crate::dataset::Datapoint;
-use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 

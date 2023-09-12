@@ -1,11 +1,9 @@
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader, DatasetLoaderError};
 use crate::dataset::point::{GCSPoint, Point, XYPoint};
 use crate::dataset::Datapoint;
-use anyhow::{bail, Context};
+use anyhow::{bail};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io;
-use std::io::ErrorKind;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CSVLoaderOptions {

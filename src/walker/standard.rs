@@ -38,7 +38,7 @@ impl Walker for StandardWalker {
                 dp.at(x, y + 1, t - 1), // South
             ];
 
-            let dist = WeightedIndex::new(&prev_probs).unwrap();
+            let dist = WeightedIndex::new(prev_probs).unwrap();
             let direction = dist.sample(&mut rng);
 
             match direction {

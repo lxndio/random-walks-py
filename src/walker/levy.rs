@@ -34,7 +34,7 @@ impl Walker for LevyWalker {
 
             // Check if jump happens here
             // TODO does it make sense to use t - 1 here instead of t?
-            let jump_prob = dp.at(x, y, t, 1);
+            let _jump_prob = dp.at(x, y, t, 1);
             // println!("t: {}, jp: {}", t, jump_prob);
             if thread_rng().gen_range(0f64..1f64) <= 0.008 {
                 println!("Jump!");
@@ -46,7 +46,7 @@ impl Walker for LevyWalker {
                     dp.at(x, y + 20, t - 1, 0), // South
                 ];
 
-                let dist = WeightedIndex::new(&prev_probs).unwrap();
+                let dist = WeightedIndex::new(prev_probs).unwrap();
                 let direction = dist.sample(&mut rng);
 
                 match direction {
@@ -72,7 +72,7 @@ impl Walker for LevyWalker {
                 dp.at(x, y + 1, t - 1, 0), // South
             ];
 
-            let dist = WeightedIndex::new(&prev_probs).unwrap();
+            let dist = WeightedIndex::new(prev_probs).unwrap();
             let direction = dist.sample(&mut rng);
 
             match direction {

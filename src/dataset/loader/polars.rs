@@ -1,10 +1,9 @@
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader, DatasetLoaderError};
 use crate::dataset::point::{GCSPoint, Point, XYPoint};
 use crate::dataset::Datapoint;
-use anyhow::{bail, Context};
+use anyhow::bail;
 use polars::frame::DataFrame;
 use std::collections::HashMap;
-use std::io::ErrorKind;
 
 #[derive(Debug)]
 pub struct PolarsLoaderOptions {

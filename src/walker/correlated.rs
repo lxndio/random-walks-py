@@ -65,7 +65,7 @@ impl Walker for CorrelatedWalker {
                 dp.at(x, y + 1, t - 1, variant),
             ];
 
-            let dist = WeightedIndex::new(&prev_probs).unwrap();
+            let dist = WeightedIndex::new(prev_probs).unwrap();
             let direction = dist.sample(&mut rng);
 
             match direction {
