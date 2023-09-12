@@ -76,7 +76,7 @@ impl Walk {
     /// # use randomwalks_lib::walker::Walk;
     /// # use randomwalks_lib::dataset::point::XYPoint;
     /// # use randomwalks_lib::xy;
-    ///
+    /// #
     /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).translate(xy!(5, 1));
     /// let walk2 = Walk(vec![xy!(5, 1), xy!(7, 4), xy!(12, 6)]);
     ///
@@ -97,7 +97,7 @@ impl Walk {
     /// # use randomwalks_lib::walker::Walk;
     /// # use randomwalks_lib::dataset::point::XYPoint;
     /// # use randomwalks_lib::xy;
-    ///
+    /// #
     /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).scale(xy!(2, 1));
     /// let walk2 = Walk(vec![xy!(0, 0), xy!(4, 3), xy!(14, 5)]);
     ///
@@ -118,7 +118,7 @@ impl Walk {
     /// # use randomwalks_lib::walker::Walk;
     /// # use randomwalks_lib::dataset::point::XYPoint;
     /// # use randomwalks_lib::xy;
-    ///
+    /// #
     /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).rotate(90.0);
     /// let walk2 = Walk(vec![xy!(0, 0), xy!(-3, 2), xy!(-5, 7)]);
     ///
