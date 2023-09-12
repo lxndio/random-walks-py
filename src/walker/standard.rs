@@ -28,7 +28,7 @@ impl Walker for StandardWalker {
         }
 
         for t in (1..=time_steps).rev() {
-            path.push((x, y));
+            path.push((x as i64, y as i64).into());
 
             let prev_probs = [
                 dp.at(x, y, t - 1),     // Stay
@@ -52,7 +52,7 @@ impl Walker for StandardWalker {
         }
 
         path.reverse();
-        path.insert(0, (x, y));
+        path.insert(0, (x as i64, y as i64).into());
 
         Ok(path.into())
     }

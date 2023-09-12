@@ -489,7 +489,7 @@ impl Dataset {
         // Translate all coordinates in walk back to original coordinates
         Ok(walk
             .iter()
-            .map(|(x, y)| (x + from.x() as isize, y + from.y() as isize))
+            .map(|p| (p.x + from.x(), p.y + from.y()).into())
             .collect())
     }
 
@@ -584,14 +584,7 @@ impl Dataset {
         let reachables = dijkstra_all(&from, successors);
         let walk = build_path(&to, &reachables);
 
-        let walk = walk
-            .iter()
-            .map(|i| {
-                let p = vertices[*i as usize];
-
-                (p.x as isize, p.y as isize)
-            })
-            .collect();
+        let walk = walk.iter().map(|i| vertices[*i as usize]).collect();
 
         Ok(walk)
     }

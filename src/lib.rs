@@ -152,4 +152,5 @@
 pub mod dataset;
 pub mod dp;
 pub mod kernel;
+pub mod walk;
 pub mod walker;

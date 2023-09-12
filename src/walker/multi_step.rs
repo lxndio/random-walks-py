@@ -31,7 +31,7 @@ impl Walker for MultiStepWalker {
         }
 
         for t in (1..=time_steps).rev() {
-            path.push((x, y));
+            path.push((x as i64, y as i64).into());
 
             let mut prev_probs = Vec::new();
             let mut movements = Vec::new();
@@ -54,7 +54,7 @@ impl Walker for MultiStepWalker {
         }
 
         path.reverse();
-        path.insert(0, (x, y));
+        path.insert(0, (x as i64, y as i64).into());
 
         Ok(path.into())
     }

@@ -122,7 +122,7 @@ mod tests {
         let loader = PolarsLoader::new(PolarsLoaderOptions {
             df,
             column_actions: vec![
-                ColumnAction::KeepMetadata("agent_id"),
+                ColumnAction::KeepMetadata("agent_id".into()),
                 ColumnAction::KeepX,
                 ColumnAction::KeepY,
                 ColumnAction::Discard,

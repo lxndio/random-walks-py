@@ -30,7 +30,7 @@ impl Walker for LevyWalker {
         let mut t = time_steps;
 
         while t > 1 {
-            path.push((x, y));
+            path.push((x as i64, y as i64).into());
 
             // Check if jump happens here
             // TODO does it make sense to use t - 1 here instead of t?
@@ -88,7 +88,7 @@ impl Walker for LevyWalker {
         }
 
         path.reverse();
-        path.insert(0, (x, y));
+        path.insert(0, (x as i64, y as i64).into());
 
         Ok(path.into())
     }

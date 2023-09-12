@@ -5,7 +5,7 @@ pub mod levy;
 pub mod multi_step;
 pub mod standard;
 
-use crate::dataset::point::{Point, XYPoint};
+use crate::dataset::point::XYPoint;
 use crate::dp::DynamicProgram;
 use anyhow::{bail, Context};
 use geo::algorithm::frechet_distance::FrechetDistance;
@@ -19,14 +19,14 @@ use thiserror::Error;
 
 /// A random walk consisting of multiple points.
 #[derive(Default, Debug, Clone, PartialEq)]
-pub struct Walk(pub Vec<(isize, isize)>);
+pub struct Walk(pub Vec<XYPoint>);
 
 impl Walk {
     pub fn len(&self) -> usize {
         self.0.len()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<(isize, isize)> {
+    pub fn iter(&self) -> std::slice::Iter<XYPoint> {
         self.0.iter()
     }
 
@@ -35,9 +35,10 @@ impl Walk {
     ///
     /// ```
     /// # use randomwalks_lib::walker::Walk;
+    /// # use randomwalks_lib::xy;
     /// #
-    /// let walk1 = Walk(vec![(0, 0), (2, 2), (5, 5)]);
-    /// let walk2 = Walk(vec![(0, 0), (3, 3), (6, 6)]);
+    /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 2), xy!(5, 5)]);
+    /// let walk2 = Walk(vec![xy!(0, 0), xy!(3, 3), xy!(6, 6)]);
     ///
     /// let frechet = walk1.frechet_distance(&walk2);
     /// ```
@@ -53,8 +54,8 @@ impl Walk {
     pub fn directness_deviation(&self) -> f64 {
         let self_line = LineString::from(self);
         let other_line = line_string![
-            (x: self.0.first().unwrap().0 as f64, y: self.0.first().unwrap().1 as f64),
-            (x: self.0.last().unwrap().0 as f64, y: self.0.last().unwrap().1 as f64),
+            (x: self.0.first().unwrap().x as f64, y: self.0.first().unwrap().y as f64),
+            (x: self.0.last().unwrap().x as f64, y: self.0.last().unwrap().y as f64),
         ];
 
         self_line.frechet_distance(&other_line)
@@ -67,8 +68,8 @@ impl Walk {
     /// # use randomwalks_lib::dataset::point::XYPoint;
     /// # use randomwalks_lib::xy;
     ///
-    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).translate(xy!(5, 1));
-    /// let walk2 = Walk(vec![(5, 1), (7, 4), (12, 6)]);
+    /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).translate(xy!(5, 1));
+    /// let walk2 = Walk(vec![xy!(5, 1), xy!(7, 4), xy!(12, 6)]);
     ///
     /// assert_eq!(walk1, walk2);
     /// ```
@@ -76,7 +77,7 @@ impl Walk {
         Walk(
             self.0
                 .iter()
-                .map(|(x, y)| (x + by.x as isize, y + by.y as isize))
+                .map(|p| (p.x + by.x, p.y + by.y).into())
                 .collect(),
         )
     }
@@ -88,8 +89,8 @@ impl Walk {
     /// # use randomwalks_lib::dataset::point::XYPoint;
     /// # use randomwalks_lib::xy;
     ///
-    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).scale(xy!(2, 1));
-    /// let walk2 = Walk(vec![(0, 0), (4, 3), (14, 5)]);
+    /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).scale(xy!(2, 1));
+    /// let walk2 = Walk(vec![xy!(0, 0), xy!(4, 3), xy!(14, 5)]);
     ///
     /// assert_eq!(walk1, walk2);
     /// ```
@@ -97,7 +98,7 @@ impl Walk {
         Walk(
             self.0
                 .iter()
-                .map(|(x, y)| (x * by.x as isize, y * by.y as isize))
+                .map(|p| (p.x * by.x, p.y * by.y).into())
                 .collect(),
         )
     }
@@ -109,8 +110,8 @@ impl Walk {
     /// # use randomwalks_lib::dataset::point::XYPoint;
     /// # use randomwalks_lib::xy;
     ///
-    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).rotate(90.0);
-    /// let walk2 = Walk(vec![(0, 0), (-3, 2), (-5, 7)]);
+    /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).rotate(90.0);
+    /// let walk2 = Walk(vec![xy!(0, 0), xy!(-3, 2), xy!(-5, 7)]);
     ///
     /// assert_eq!(walk1, walk2);
     /// ```
@@ -120,11 +121,12 @@ impl Walk {
         Walk(
             self.0
                 .iter()
-                .map(|(x, y)| {
+                .map(|p| {
                     (
-                        (*x as f64 * rad.cos() - *y as f64 * rad.sin()) as isize,
-                        (*y as f64 * rad.cos() + *x as f64 * rad.sin()) as isize,
+                        (p.x as f64 * rad.cos() - p.y as f64 * rad.sin()) as i64,
+                        (p.y as f64 * rad.cos() + p.x as f64 * rad.sin()) as i64,
                     )
+                        .into()
                 })
                 .collect(),
         )
@@ -134,8 +136,9 @@ impl Walk {
     ///
     /// ```
     /// # use randomwalks_lib::walker::Walk;
+    /// # use randomwalks_lib::xy;
     /// #
-    /// let walk = Walk(vec![(0, 0), (2, 3), (7, 5)]);
+    /// let walk = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]);
     ///
     /// walk.plot("walk.png")?;
     /// ```
@@ -164,12 +167,17 @@ impl Walk {
 
         // Draw walk
 
-        chart.draw_series(LineSeries::new(self.0.clone(), &BLACK))?;
+        let walk: Vec<(i64, i64)> = self.0.iter().map(|x| x.clone().into()).collect();
+
+        chart.draw_series(LineSeries::new(
+            walk.iter().copied().collect::<Vec<_>>(),
+            &BLACK,
+        ))?;
 
         // Draw start and end point
 
         chart.draw_series(PointSeries::of_element(
-            vec![*self.0.first().unwrap(), *self.0.last().unwrap()],
+            vec![*walk.first().unwrap(), *walk.last().unwrap()],
             5,
             &BLACK,
             &|c, s, st| {
@@ -186,9 +194,10 @@ impl Walk {
     ///
     /// ```
     /// # use randomwalks_lib::walker::Walk;
+    /// # use randomwalks_lib::xy;
     /// #
-    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]);
-    /// let walk2 = Walk(vec![(0, 0), (5, 5), (7, 8)]);
+    /// let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]);
+    /// let walk2 = Walk(vec![xy!(0, 0), xy!(5, 5), xy!(7, 8)]);
     /// let walks = vec![walk1, walk2];
     ///
     /// Walk::plot_multiple(&walks, "walks.png")?;
@@ -214,7 +223,11 @@ impl Walk {
 
         // Draw walks
 
-        let walks: Vec<Vec<(isize, isize)>> = walks.iter().map(|x| x.0.clone()).collect();
+        let walks: Vec<Vec<(i64, i64)>> = walks
+            .iter()
+            .map(|w| w.iter().map(|p| (p.x, p.y)).collect())
+            .collect();
+
         let mut rng = rand::thread_rng();
 
         for walk in walks.iter() {
@@ -259,13 +272,13 @@ impl Walk {
 }
 
 #[cfg(feature = "plotting")]
-fn point_range(walks: &Vec<Walk>) -> (Range<isize>, Range<isize>) {
+fn point_range(walks: &Vec<Walk>) -> (Range<i64>, Range<i64>) {
     // Compute size of plotting area
 
     let points: Vec<_> = walks.iter().map(|x| &x.0).flatten().copied().collect();
 
-    let xs: Vec<isize> = points.iter().map(|(x, _)| x).copied().collect();
-    let ys: Vec<isize> = points.iter().map(|(_, y)| y).copied().collect();
+    let xs: Vec<i64> = points.iter().map(|p| p.x).collect();
+    let ys: Vec<i64> = points.iter().map(|p| p.y).collect();
 
     let x_range = (*xs.iter().min().unwrap(), *xs.iter().max().unwrap());
     let y_range = (*ys.iter().min().unwrap(), *ys.iter().max().unwrap());
@@ -276,13 +289,13 @@ fn point_range(walks: &Vec<Walk>) -> (Range<isize>, Range<isize>) {
     (coordinate_range_x, coordinate_range_y)
 }
 
-impl From<Vec<(isize, isize)>> for Walk {
-    fn from(value: Vec<(isize, isize)>) -> Self {
+impl From<Vec<XYPoint>> for Walk {
+    fn from(value: Vec<XYPoint>) -> Self {
         Self(value)
     }
 }
 
-impl From<Walk> for Vec<(isize, isize)> {
+impl From<Walk> for Vec<XYPoint> {
     fn from(value: Walk) -> Self {
         value.0
     }
@@ -294,15 +307,15 @@ impl From<&Walk> for LineString<f64> {
             value
                 .0
                 .iter()
-                .map(|(x, y)| (*x as f64, *y as f64))
+                .map(|p| (p.x as f64, p.y as f64))
                 .map(|p| Coord::from(p))
                 .collect(),
         )
     }
 }
 
-impl FromIterator<(isize, isize)> for Walk {
-    fn from_iter<T: IntoIterator<Item = (isize, isize)>>(iter: T) -> Self {
+impl FromIterator<XYPoint> for Walk {
+    fn from_iter<T: IntoIterator<Item = XYPoint>>(iter: T) -> Self {
         let mut c = Vec::new();
 
         for i in iter {
@@ -314,7 +327,7 @@ impl FromIterator<(isize, isize)> for Walk {
 }
 
 impl Index<usize> for Walk {
-    type Output = (isize, isize);
+    type Output = XYPoint;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.0[index]
@@ -367,24 +380,24 @@ mod tests {
 
     #[test]
     fn test_walk_translate() {
-        let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).translate(xy!(5, 1));
-        let walk2 = Walk(vec![(5, 1), (7, 4), (12, 6)]);
+        let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).translate(xy!(5, 1));
+        let walk2 = Walk(vec![xy!(5, 1), xy!(7, 4), xy!(12, 6)]);
 
         assert_eq!(walk1, walk2);
     }
 
     #[test]
     fn test_walk_scale() {
-        let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).scale(xy!(2, 1));
-        let walk2 = Walk(vec![(0, 0), (4, 3), (14, 5)]);
+        let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).scale(xy!(2, 1));
+        let walk2 = Walk(vec![xy!(0, 0), xy!(4, 3), xy!(14, 5)]);
 
         assert_eq!(walk1, walk2);
     }
 
     #[test]
     fn test_walk_rotate() {
-        let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]).rotate(90.0);
-        let walk2 = Walk(vec![(0, 0), (-3, 2), (-5, 7)]);
+        let walk1 = Walk(vec![xy!(0, 0), xy!(2, 3), xy!(7, 5)]).rotate(90.0);
+        let walk2 = Walk(vec![xy!(0, 0), xy!(-3, 2), xy!(-5, 7)]);
 
         assert_eq!(walk1, walk2);
     }
