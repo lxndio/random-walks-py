@@ -112,14 +112,11 @@ impl DynamicPrograms for SimpleDynamicProgram {
 
         chart.configure_mesh().draw()?;
 
-        let iter = self.table[t]
-            .iter()
-            .enumerate()
-            .flat_map(|(x, l)| {
-                l.iter().enumerate().map(move |(y, v)| {
-                    (x as i32 - limit_pos as i32, y as i32 - limit_pos as i32, v)
-                })
-            });
+        let iter = self.table[t].iter().enumerate().flat_map(|(x, l)| {
+            l.iter()
+                .enumerate()
+                .map(move |(y, v)| (x as i32 - limit_pos as i32, y as i32 - limit_pos as i32, v))
+        });
 
         let min = iter
             .clone()

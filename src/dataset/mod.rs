@@ -215,6 +215,11 @@ impl Dataset {
         self.data.len()
     }
 
+    /// Returns whether the dataset is empty.
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
+    }
+
     /// Return the coordinate type of the dataset.
     pub fn coordinate_type(&self) -> CoordinateType {
         self.coordinate_type

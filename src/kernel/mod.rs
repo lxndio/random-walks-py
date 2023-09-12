@@ -3,7 +3,7 @@
 use crate::kernel::generator::KernelGenerator;
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Formatter, Write};
+use std::fmt::{Debug, Formatter};
 use std::ops::{Index, IndexMut, Mul, MulAssign};
 use strum::EnumIter;
 
@@ -208,6 +208,7 @@ pub enum Direction {
     Stay,
 }
 
+#[derive(Default, Debug)]
 pub struct Directions<T> {
     pub north: T,
     pub east: T,

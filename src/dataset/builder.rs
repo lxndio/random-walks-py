@@ -70,7 +70,7 @@
 
 use crate::dataset::loader::csv::{CSVLoader, CSVLoaderOptions};
 use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
-use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};
+use crate::dataset::loader::{ColumnAction, CoordinateType};
 use crate::dataset::point::{Point, XYPoint};
 use crate::dataset::{Datapoint, Dataset};
 use crate::xy;
@@ -98,7 +98,7 @@ pub enum DatasetBuilderError {
 
 #[derive(Default)]
 enum DatasetSource {
-    CSV(String),
+    Csv(String),
     #[cfg(feature = "polars_loading")]
     Polars(DataFrame),
     Manual,
@@ -132,7 +132,7 @@ impl DatasetBuilder {
     where
         S: Into<String>,
     {
-        self.source = DatasetSource::CSV(path.into());
+        self.source = DatasetSource::Csv(path.into());
 
         self
     }
@@ -273,7 +273,7 @@ impl DatasetBuilder {
         };
 
         match self.source {
-            DatasetSource::CSV(path) => {
+            DatasetSource::Csv(path) => {
                 let loader = CSVLoader::new(CSVLoaderOptions {
                     path,
                     delimiter: self.csv_delimiter,

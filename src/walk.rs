@@ -15,8 +15,14 @@ use std::ops::{Index, Range};
 pub struct Walk(pub Vec<XYPoint>);
 
 impl Walk {
+    // Returns the number of steps in the walk.
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    // Returns whether the walk contains any steps.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn iter(&self) -> std::slice::Iter<XYPoint> {
@@ -145,7 +151,7 @@ impl Walk {
 
         // Initialize plot
 
-        let (coordinate_range_x, coordinate_range_y) = point_range(&vec![self.clone()]);
+        let (coordinate_range_x, coordinate_range_y) = point_range(&[self.clone()]);
 
         let root = BitMapBackend::new(&filename, (1000, 1000)).into_drawing_area();
         root.fill(&WHITE).unwrap();
@@ -162,10 +168,7 @@ impl Walk {
 
         let walk: Vec<(i64, i64)> = self.0.iter().map(|x| (*x).into()).collect();
 
-        chart.draw_series(LineSeries::new(
-            walk.to_vec(),
-            &BLACK,
-        ))?;
+        chart.draw_series(LineSeries::new(walk.to_vec(), &BLACK))?;
 
         // Draw start and end point
 
@@ -196,7 +199,7 @@ impl Walk {
     /// Walk::plot_multiple(&walks, "walks.png")?;
     /// ```
     #[cfg(feature = "plotting")]
-    pub fn plot_multiple<S: Into<String>>(walks: &Vec<Walk>, filename: S) -> anyhow::Result<()> {
+    pub fn plot_multiple<S: Into<String>>(walks: &[Walk], filename: S) -> anyhow::Result<()> {
         let filename = filename.into();
 
         // Initialize plot
@@ -265,7 +268,7 @@ impl Walk {
 }
 
 #[cfg(feature = "plotting")]
-fn point_range(walks: &Vec<Walk>) -> (Range<i64>, Range<i64>) {
+fn point_range(walks: &[Walk]) -> (Range<i64>, Range<i64>) {
     // Compute size of plotting area
 
     let points: Vec<_> = walks.iter().flat_map(|x| &x.0).copied().collect();
