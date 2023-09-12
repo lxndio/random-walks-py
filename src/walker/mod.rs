@@ -10,7 +10,6 @@ use crate::dp::DynamicProgram;
 use anyhow::{bail, Context};
 use geo::algorithm::frechet_distance::FrechetDistance;
 use geo::{line_string, Coord, LineString};
-use plotters::coord::types::RangedCoordi64;
 #[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use rand::Rng;
@@ -18,6 +17,7 @@ use std::collections::HashSet;
 use std::ops::{Index, Range};
 use thiserror::Error;
 
+/// A random walk consisting of multiple points.
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Walk(pub Vec<(isize, isize)>);
 
@@ -30,6 +30,17 @@ impl Walk {
         self.0.iter()
     }
 
+    /// Computes the [Fréchet distance](https://en.wikipedia.org/wiki/Fr%C3%A9chet_distance) between
+    /// two random walks.
+    ///
+    /// ```
+    /// # use randomwalks_lib::walker::Walk;
+    /// #
+    /// let walk1 = Walk(vec![(0, 0), (2, 2), (5, 5)]);
+    /// let walk2 = Walk(vec![(0, 0), (3, 3), (6, 6)]);
+    ///
+    /// let frechet = walk1.frechet_distance(&walk2);
+    /// ```
     pub fn frechet_distance(&self, other: &Walk) -> f64 {
         let self_line = LineString::from(self);
         let other_line = LineString::from(other);
@@ -37,6 +48,8 @@ impl Walk {
         self_line.frechet_distance(&other_line)
     }
 
+    /// Computes how much a random walk deviates from the straight line between the start and
+    /// end point.
     pub fn directness_deviation(&self) -> f64 {
         let self_line = LineString::from(self);
         let other_line = line_string![
@@ -117,6 +130,15 @@ impl Walk {
         )
     }
 
+    /// Plots a walk and saves the resulting image to a .png file.
+    ///
+    /// ```
+    /// # use randomwalks_lib::walker::Walk;
+    /// #
+    /// let walk = Walk(vec![(0, 0), (2, 3), (7, 5)]);
+    ///
+    /// walk.plot("walk.png")?;
+    /// ```
     #[cfg(feature = "plotting")]
     pub fn plot<S: Into<String>>(&self, filename: S) -> anyhow::Result<()> {
         if self.0.is_empty() {
@@ -160,6 +182,18 @@ impl Walk {
         Ok(())
     }
 
+    /// Plots multiple walks together and saves the resulting image to a .png file.
+    ///
+    /// ```
+    /// # use randomwalks_lib::walker::Walk;
+    /// #
+    /// let walk1 = Walk(vec![(0, 0), (2, 3), (7, 5)]);
+    /// let walk2 = Walk(vec![(0, 0), (5, 5), (7, 8)]);
+    /// let walks = vec![walk1, walk2];
+    ///
+    /// Walk::plot_multiple(&walks, "walks.png")?;
+    /// ```
+    #[cfg(feature = "plotting")]
     pub fn plot_multiple<S: Into<String>>(walks: &Vec<Walk>, filename: S) -> anyhow::Result<()> {
         let filename = filename.into();
 

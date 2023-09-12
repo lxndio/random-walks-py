@@ -64,6 +64,14 @@
 //! using the function [`rw_between()`](dataset::Dataset::rw_between). To generate many random
 //! walks at once, use the [`DatasetWalksBuilder`](dataset::DatasetWalksBuilder).
 //!
+//! # Features
+//!
+//! This library has the following features which enable additional functionality.
+//!
+//! - `plotting`: Allows generating plots of random walks and datasets and save them as images.
+//! - `polars_loading`: Allows loading `DataFrame`s from the
+//! [Polars](https://crates.io/crates/polars) crate.
+//!
 //! # Getting Started
 //!
 //! The normal workflow when using this library may be as follows:
