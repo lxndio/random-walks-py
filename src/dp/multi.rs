@@ -111,4 +111,8 @@ impl DynamicPrograms for MultiDynamicProgram {
             }
         }
     }
+
+    fn save(&self, filename: String) -> anyhow::Result<()> {
+        todo!()
+    }
 }

@@ -21,15 +21,17 @@ line_drawing = "1.0.0"
 geo = "0.26.0"
 plotters = { version = "0.3.5", optional = true }
 polars = { version = "0.32.1", features = ["rows"], optional = true }
+zstd = { version = "0.12.4", features = ["zstdmt"], optional =  true }
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [features]
-default = ["plotting", "polars_loading"]
+default = ["plotting", "polars_loading", "saving"]
 
 plotting = ["plotters"]
 polars_loading = ["polars"]
+saving = ["zstd"]
 
 [[bench]]
 name = "benchmarks"

@@ -74,7 +74,6 @@ use serde::{Deserialize, Serialize};
 pub mod builder;
 pub mod multi;
 pub mod simple;
-pub mod store;
 
 pub trait DynamicPrograms {
     fn limits(&self) -> (isize, isize);
@@ -87,6 +86,8 @@ pub trait DynamicPrograms {
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()>;
 
     fn print(&self, t: usize);
+
+    fn save(&self, filename: String) -> anyhow::Result<()>;
 }
 
 pub enum DynamicProgram {
@@ -132,6 +133,10 @@ impl DynamicPrograms for DynamicProgram {
 
     fn print(&self, t: usize) {
         self.unwrap().print(t)
+    }
+
+    fn save(&self, filename: String) -> anyhow::Result<()> {
+        self.unwrap().save(filename)
     }
 }
 

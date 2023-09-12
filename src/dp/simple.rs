@@ -1,11 +1,21 @@
-use crate::dp::DynamicPrograms;
+use crate::dp::builder::DynamicProgramBuilder;
+use crate::dp::{DynamicProgram, DynamicPrograms};
+use crate::kernel;
 use crate::kernel::Kernel;
-use anyhow::Context;
+use anyhow::{bail, Context};
 use num::Zero;
 #[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use std::fmt::Debug;
+#[cfg(feature = "saving")]
+use std::fs::File;
+use std::io::{BufReader, Read};
+#[cfg(feature = "saving")]
+use std::io::{BufWriter, Write};
 use std::time::Instant;
+use zstd::Decoder;
+#[cfg(feature = "saving")]
+use zstd::Encoder;
 
 pub struct SimpleDynamicProgram {
     pub(crate) table: Vec<Vec<Vec<f64>>>,
@@ -60,6 +70,58 @@ impl SimpleDynamicProgram {
         let y = (self.time_limit as isize + y) as usize;
 
         self.field_probabilities[x][y]
+    }
+
+    fn field_probability_set(&mut self, x: isize, y: isize, val: f64) {
+        let x = (self.time_limit as isize + x) as usize;
+        let y = (self.time_limit as isize + y) as usize;
+
+        self.field_probabilities[x][y] = val;
+    }
+
+    #[cfg(feature = "saving")]
+    pub fn load(filename: String) -> anyhow::Result<DynamicProgram> {
+        let file = File::open(filename)?;
+        let mut reader = BufReader::new(file);
+
+        let mut time_limit = [0u8; 8];
+        let time_limit = match reader.read_exact(&mut time_limit) {
+            Ok(()) => u64::from_le_bytes(time_limit),
+            Err(_) => bail!("could not read time limit from file"),
+        };
+
+        let DynamicProgram::Simple(mut dp) = DynamicProgramBuilder::new()
+            .simple()
+            .time_limit(time_limit as usize)
+            .kernel(kernel!(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+            .build()?
+        else {
+            unreachable!();
+        };
+
+        let (limit_neg, limit_pos) = dp.limits();
+
+        let mut decoder = Decoder::new(reader).context("could not create decoder")?;
+
+        let mut buf = [0u8; 8];
+
+        for t in 0..limit_pos as usize {
+            for x in limit_neg..=limit_pos {
+                for y in limit_neg..=limit_pos {
+                    decoder.read_exact(&mut buf)?;
+                    dp.set(x, y, t, f64::from_le_bytes(buf));
+                }
+            }
+        }
+
+        for x in limit_neg..=limit_pos {
+            for y in limit_neg..=limit_pos {
+                decoder.read_exact(&mut buf)?;
+                dp.field_probability_set(x, y, f64::from_le_bytes(buf));
+            }
+        }
+
+        Ok(DynamicProgram::Simple(dp))
     }
 }
 
@@ -159,6 +221,40 @@ impl DynamicPrograms for SimpleDynamicProgram {
 
             println!();
         }
+    }
+
+    #[cfg(feature = "saving")]
+    fn save(&self, filename: String) -> anyhow::Result<()> {
+        let (limit_neg, limit_pos) = self.limits();
+        let file = File::create(filename)?;
+        let mut writer = BufWriter::new(file);
+
+        writer.write(&(self.time_limit as u64).to_le_bytes())?;
+        writer.flush()?;
+
+        let mut encoder = Encoder::new(writer, 9).context("could not create encoder")?;
+
+        encoder
+            .multithread(4)
+            .context("could not enable multithreading")?;
+
+        let mut encoder = encoder.auto_finish();
+
+        for t in 0..limit_pos as usize {
+            for x in limit_neg..=limit_pos {
+                for y in limit_neg..=limit_pos {
+                    encoder.write(&self.at(x, y, t).to_le_bytes())?;
+                }
+            }
+        }
+
+        for x in limit_neg..limit_pos {
+            for y in limit_neg..=limit_pos {
+                encoder.write(&self.field_probability_at(x, y).to_le_bytes())?;
+            }
+        }
+
+        Ok(())
     }
 }
 
