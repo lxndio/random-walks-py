@@ -142,8 +142,9 @@ pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
 use crate::dp::DynamicProgram;
+use crate::walk::Walk;
 use crate::walker::standard::StandardWalker;
-use crate::walker::{Walk, Walker};
+use crate::walker::Walker;
 use anyhow::{anyhow, bail, Context};
 use line_drawing::Bresenham;
 use pathfinding::prelude::{build_path, dijkstra_all};
