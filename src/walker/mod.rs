@@ -45,4 +45,10 @@ pub enum WalkerError {
 
     #[error("no path exists")]
     NoPathExists,
+
+    #[error("found an inconsistent path, probably due to wrong settings in the dynamic program or walker")]
+    InconsistentPath,
+
+    #[error("error while computing random distribution")]
+    RandomDistributionError,
 }

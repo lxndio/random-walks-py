@@ -1,10 +1,13 @@
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
-use rand::distributions::WeightedIndex;
+use rand::distributions::{WeightedError, WeightedIndex};
 use rand::prelude::*;
 
-pub struct LevyWalker;
+pub struct LevyWalker {
+    pub jump_probability: f64,
+    pub jump_distance: usize,
+}
 
 impl Walker for LevyWalker {
     fn generate_path(
@@ -14,7 +17,7 @@ impl Walker for LevyWalker {
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        let DynamicProgram::Multi(dp) = dp else {
+        let DynamicProgram::Simple(dp) = dp else {
             return Err(WalkerError::WrongDynamicProgramType);
         };
 
@@ -23,68 +26,48 @@ impl Walker for LevyWalker {
         let mut rng = rand::thread_rng();
 
         // Check if any path exists leading to the given end point
-        if dp.at(to_x, to_y, time_steps, 0).is_zero() {
+        if dp.at(to_x, to_y, time_steps).is_zero() {
             return Err(WalkerError::NoPathExists);
         }
 
         let mut t = time_steps;
 
-        while t > 1 {
+        while t >= 1 {
             path.push((x as i64, y as i64).into());
 
             // Check if jump happens here
-            // TODO does it make sense to use t - 1 here instead of t?
-            let _jump_prob = dp.at(x, y, t, 1);
-            // println!("t: {}, jp: {}", t, jump_prob);
-            if thread_rng().gen_range(0f64..1f64) <= 0.008 {
-                println!("Jump!");
-                let prev_probs = [
-                    dp.at(x, y, t - 20, 0),     // Stay
-                    dp.at(x - 20, y, t - 1, 0), // West
-                    dp.at(x, y - 20, t - 1, 0), // North
-                    dp.at(x + 20, y, t - 1, 0), // East
-                    dp.at(x, y + 20, t - 1, 0), // South
-                ];
-
-                let dist = WeightedIndex::new(prev_probs).unwrap();
-                let direction = dist.sample(&mut rng);
-
-                match direction {
-                    0 => (),      // Stay
-                    1 => x -= 20, // West
-                    2 => y -= 20, // North
-                    3 => x += 20, // East
-                    4 => y += 20, // South
-                    _ => {
-                        unreachable!("Other directions should not be chosen from the distribution")
-                    }
-                }
-
-                t -= 20;
-                continue;
-            }
+            let distance = if thread_rng().gen_range(0f64..1f64) <= self.jump_probability
+                && t >= self.jump_distance
+            {
+                self.jump_distance
+            } else {
+                1
+            };
 
             let prev_probs = [
-                dp.at(x, y, t - 1, 0),     // Stay
-                dp.at(x - 1, y, t - 1, 0), // West
-                dp.at(x, y - 1, t - 1, 0), // North
-                dp.at(x + 1, y, t - 1, 0), // East
-                dp.at(x, y + 1, t - 1, 0), // South
+                dp.at(x, y, t - distance),                     // Stay
+                dp.at(x - distance as isize, y, t - distance), // West
+                dp.at(x, y - distance as isize, t - distance), // North
+                dp.at(x + distance as isize, y, t - distance), // East
+                dp.at(x, y + distance as isize, t - distance), // South
             ];
 
-            let dist = WeightedIndex::new(prev_probs).unwrap();
-            let direction = dist.sample(&mut rng);
+            let direction = match WeightedIndex::new(prev_probs) {
+                Ok(dist) => dist.sample(&mut rng),
+                Err(WeightedError::AllWeightsZero) => return Err(WalkerError::InconsistentPath),
+                _ => return Err(WalkerError::RandomDistributionError),
+            };
 
             match direction {
-                0 => (),     // Stay
-                1 => x -= 1, // West
-                2 => y -= 1, // North
-                3 => x += 1, // East
-                4 => y += 1, // South
+                0 => (),                     // Stay
+                1 => x -= distance as isize, // West
+                2 => y -= distance as isize, // North
+                3 => x += distance as isize, // East
+                4 => y += distance as isize, // South
                 _ => unreachable!("Other directions should not be chosen from the distribution"),
             }
 
-            t -= 1;
+            t -= distance;
         }
 
         path.reverse();
