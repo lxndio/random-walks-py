@@ -83,6 +83,7 @@ pub trait DynamicPrograms {
 
     fn field_probabilities(&self) -> Vec<Vec<f64>>;
 
+    #[cfg(feature = "plotting")]
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()>;
 
     fn print(&self, t: usize);
@@ -124,6 +125,7 @@ impl DynamicPrograms for DynamicProgram {
         self.unwrap().field_probabilities()
     }
 
+    #[cfg(feature = "plotting")]
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
         self.unwrap().heatmap(path, t)
     }

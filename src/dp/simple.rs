@@ -2,6 +2,7 @@ use crate::dp::DynamicPrograms;
 use crate::kernel::Kernel;
 use anyhow::Context;
 use num::Zero;
+#[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use std::fmt::Debug;
 use std::time::Instant;
@@ -94,6 +95,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
     }
 
     #[cfg(not(tarpaulin_include))]
+    #[cfg(feature = "plotting")]
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
         let (limit_neg, limit_pos) = self.limits();
         let coordinate_range = limit_neg as i32..(limit_pos + 1) as i32;

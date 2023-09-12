@@ -147,6 +147,7 @@ use crate::walker::{Walk, Walker};
 use anyhow::{anyhow, bail, Context};
 use line_drawing::Bresenham;
 use pathfinding::prelude::{build_path, dijkstra_all};
+#[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use point::{Coordinates, GCSPoint, Point, XYPoint};
 use rand::Rng;
@@ -611,6 +612,7 @@ impl Dataset {
     ///
     /// If `color_by` is `Some`, the points will be colored differently for each value of the
     /// given metadata key.
+    #[cfg(feature = "plotting")]
     pub fn plot(
         &self,
         path: String,

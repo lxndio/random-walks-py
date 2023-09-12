@@ -69,14 +69,13 @@
 //!
 
 use crate::dataset::loader::csv::{CSVLoader, CSVLoaderOptions};
-#[cfg(feature = "polars")]
+#[cfg(feature = "polars_loading")]
 use crate::dataset::loader::polars::{PolarsLoader, PolarsLoaderOptions};
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader};
 use crate::dataset::point::{Coordinates, Point, XYPoint};
 use crate::dataset::{loader, Datapoint, Dataset};
 use crate::xy;
 use anyhow::bail;
-use polars::frame::DataFrame;
 use rand::Rng;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -99,7 +98,7 @@ pub enum DatasetBuilderError {
 #[derive(Default)]
 enum DatasetSource {
     CSV(String),
-    #[cfg(feature = "polars")]
+    #[cfg(feature = "polars_loading")]
     Polars(DataFrame),
     Manual,
     #[default]
@@ -138,7 +137,7 @@ impl DatasetBuilder {
     }
 
     /// Loads data from a Polars `DataFrame`.
-    #[cfg(feature = "polars")]
+    #[cfg(feature = "polars_loading")]
     pub fn from_polars(mut self, df: DataFrame) -> Self {
         self.source = DatasetSource::Polars(df);
 
@@ -284,7 +283,7 @@ impl DatasetBuilder {
 
                 Dataset::from_loader(loader)
             }
-            #[cfg(feature = "polars")]
+            #[cfg(feature = "polars_loading")]
             DatasetSource::Polars(df) => {
                 let loader = PolarsLoader::new(PolarsLoaderOptions {
                     df,

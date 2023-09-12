@@ -95,6 +95,7 @@ impl DynamicPrograms for MultiDynamicProgram {
         self.field_probabilities.clone()
     }
 
+    #[cfg(feature = "plotting")]
     fn heatmap(&self, _path: String, _t: usize) -> anyhow::Result<()> {
         todo!()
     }
