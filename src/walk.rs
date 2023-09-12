@@ -1,3 +1,13 @@
+//! Provides the basic data structure for a walk.
+//!
+//! A [`Walk`](Walk) can be created manually by specifying all of its points or generated using a
+//! [`DynamicProgram`](crate::dp::DynamicProgram). See the [`dp`](crate::dp) module for more
+//! information on how to generate random walks.
+//!
+//! The [`Walk`](Walk) structure also provides different useful functions for manipulating and
+//! reviewing walks. If the `plotting` feature is enabled, walks can also be plotted to an
+//! image file.
+
 use crate::dataset::point::XYPoint;
 use anyhow::bail;
 use geo::{line_string, Coord, FrechetDistance, LineString};
