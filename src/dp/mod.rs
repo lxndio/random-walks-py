@@ -1,14 +1,71 @@
-//! The dynamic program used to compute everything.
+//! Provides the dynamic programs required to compute random walks.
+//!
+//! This library contains different dynamic programs which must be computed using some specified
+//! kernel. After the computation, random walks can be generated using the tables of the dynamic
+//! program.
+//!
+//! # Types
+//!
+//! There are two different types of dynamic programs which compute the random walk probabilities.
+//! They are listed below together with short descriptions.
+//!
+//! - [`SimpleDynamicProgram`]: A dynamic program that uses a single kernel to compute the
+//! probabilities.
+//! - [`MultiDynamicProgram`]: A dynamic program that uses multiple kernels to compute the
+//! probabilities. This is for example required when using correlated random walks.
+//!
+//! Dynamic programs are wrapped into the [`DynamicProgram`] enum and must
+//! implement the [`DynamicPrograms`] trait.
 //!
 //! # Examples
 //!
-//! Create a dynamic program with a `time_limit` of 10 using the [`SimpleStepper`].
-//! Then use it to count the number of paths leading to each cell.
+//! ## Creating a Dynamic Program
+//!
+//! Dynamic programs can be created using the
+//! [`DynamicProgramBuilder`](builder::DynamicProgramBuilder). It offers different options for
+//! dynamic programs which are described in detail in the [`builder`] module. The general structure,
+//! however, looks like this:
 //!
 //! ```
-//! let mut dp = DynamicProgram::new(10, SimpleGenerator);
-//! dp.count_paths();
+//! use randomwalks_lib::dp::builder::DynamicProgramBuilder;
+//! use randomwalks_lib::kernel::Kernel;
+//! use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
+//!
+//! let dp = DynamicProgramBuilder::new()
+//!     .simple()
+//!     .time_limit(400)
+//!     .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+//!     .build()
+//!     .unwrap();
 //! ```
+//!
+//! In this example, a [`SimpleDynamicProgram`] is created with a time limit of 400 time steps.
+//! As can be seen, a [`Kernel`](crate::kernel::Kernel) must be specified. More information on
+//! kernels can be found in the documentation of the [`kernel`](crate::kernel) module.
+//!
+//! ## Computation
+//!
+//! After creation, a dynamic program is initialized but the actual values are not yet computed.
+//! To do the computation,
+//!
+//! ```
+//! # use randomwalks_lib::dp::builder::DynamicProgramBuilder;
+//! # use randomwalks_lib::dp::DynamicPrograms;
+//! # use randomwalks_lib::kernel::Kernel;
+//! # use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
+//! #
+//! # let mut dp = DynamicProgramBuilder::new()
+//! #     .simple()
+//! #     .time_limit(400)
+//! #     .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+//! #     .build()
+//! #     .unwrap();
+//! #
+//! dp.compute();
+//! ```
+//!
+//! can be run.
+//!
 
 use pyo3::pyclass;
 use crate::dp::multi::MultiDynamicProgram;
@@ -18,7 +75,6 @@ use serde::{Deserialize, Serialize};
 pub mod builder;
 pub mod multi;
 pub mod simple;
-pub mod store;
 
 pub trait DynamicPrograms {
     fn limits(&self) -> (isize, isize);
@@ -27,9 +83,12 @@ pub trait DynamicPrograms {
 
     fn field_probabilities(&self) -> Vec<Vec<f64>>;
 
+    #[cfg(feature = "plotting")]
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()>;
 
     fn print(&self, t: usize);
+
+    fn save(&self, filename: String) -> anyhow::Result<()>;
 }
 
 pub enum DynamicProgram {
@@ -37,6 +96,7 @@ pub enum DynamicProgram {
     Multi(MultiDynamicProgram),
 }
 
+#[cfg(not(tarpaulin_include))]
 impl DynamicProgram {
     fn unwrap(&self) -> &dyn DynamicPrograms {
         match self {
@@ -53,6 +113,7 @@ impl DynamicProgram {
     }
 }
 
+#[cfg(not(tarpaulin_include))]
 impl DynamicPrograms for DynamicProgram {
     fn limits(&self) -> (isize, isize) {
         self.unwrap().limits()
@@ -66,12 +127,17 @@ impl DynamicPrograms for DynamicProgram {
         self.unwrap().field_probabilities()
     }
 
+    #[cfg(feature = "plotting")]
     fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
         self.unwrap().heatmap(path, t)
     }
 
     fn print(&self, t: usize) {
         self.unwrap().print(t)
+    }
+
+    fn save(&self, filename: String) -> anyhow::Result<()> {
+        self.unwrap().save(filename)
     }
 }
 

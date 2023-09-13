@@ -30,7 +30,7 @@ impl Walker for CorrelatedWalker {
             }
         }
 
-        path.push((x, y));
+        path.push((x as i64, y as i64).into());
 
         // Compute first (= last, because reconstructing backwards) step manually
         let direction: usize = rng.gen_range(0..4);
@@ -46,7 +46,7 @@ impl Walker for CorrelatedWalker {
         let last_direction = direction;
 
         for t in (1..time_steps).rev() {
-            path.push((x, y));
+            path.push((x as i64, y as i64).into());
 
             let variant: usize = match last_direction {
                 0 => 4,
@@ -65,7 +65,7 @@ impl Walker for CorrelatedWalker {
                 dp.at(x, y + 1, t - 1, variant),
             ];
 
-            let dist = WeightedIndex::new(&prev_probs).unwrap();
+            let dist = WeightedIndex::new(prev_probs).unwrap();
             let direction = dist.sample(&mut rng);
 
             match direction {
@@ -78,9 +78,9 @@ impl Walker for CorrelatedWalker {
         }
 
         path.reverse();
-        path.insert(0, (x, y));
+        path.insert(0, (x as i64, y as i64).into());
 
-        Ok(path)
+        Ok(path.into())
     }
 
     fn name(&self, short: bool) -> String {

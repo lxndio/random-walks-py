@@ -1,10 +1,13 @@
+//! Provides walkers used to generate random walks by using a dynamic program.
+
 pub mod correlated;
+pub mod levy;
+pub mod multi_step;
 pub mod standard;
 
 use crate::dp::DynamicProgram;
+use crate::walk::Walk;
 use thiserror::Error;
-
-pub type Walk = Vec<(isize, isize)>;
 
 pub trait Walker {
     fn generate_path(
@@ -42,4 +45,10 @@ pub enum WalkerError {
 
     #[error("no path exists")]
     NoPathExists,
+
+    #[error("found an inconsistent path, probably due to wrong settings in the dynamic program or walker")]
+    InconsistentPath,
+
+    #[error("error while computing random distribution")]
+    RandomDistributionError,
 }

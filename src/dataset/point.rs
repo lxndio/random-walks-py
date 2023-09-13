@@ -1,7 +1,9 @@
+//! Provides different formats for two-dimensional points.
+
 use num::Signed;
-use std::cmp::Ordering;
 use std::ops::{Add, Sub};
 
+/// Specifies points that have an X- and Y-coordinate.
 pub trait Coordinates<T: Signed> {
     fn x(&self) -> T;
     fn y(&self) -> T;
@@ -21,6 +23,17 @@ impl Coordinates<f64> for GCSPoint {
 
     fn y(&self) -> f64 {
         self.y
+    }
+}
+
+impl TryFrom<Point> for GCSPoint {
+    type Error = ();
+
+    fn try_from(value: Point) -> Result<Self, Self::Error> {
+        match value {
+            Point::GCS(p) => Ok(p),
+            Point::XY(_) => Err(()),
+        }
     }
 }
 
@@ -68,7 +81,7 @@ impl ToString for GCSPoint {
 }
 
 /// A 2d-point in XY coordinate system.
-#[derive(Default, Debug, Clone, Copy, PartialEq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct XYPoint {
     pub x: i64,
     pub y: i64,
@@ -81,6 +94,17 @@ impl Coordinates<i64> for XYPoint {
 
     fn y(&self) -> i64 {
         self.y
+    }
+}
+
+impl TryFrom<Point> for XYPoint {
+    type Error = ();
+
+    fn try_from(value: Point) -> Result<Self, Self::Error> {
+        match value {
+            Point::GCS(_) => Err(()),
+            Point::XY(p) => Ok(p),
+        }
     }
 }
 
@@ -127,6 +151,7 @@ impl ToString for XYPoint {
     }
 }
 
+/// A macro that allows quick creation of an [`XYPoint`](XYPoint).
 #[macro_export]
 macro_rules! xy {
     ($x:expr, $y:expr) => {
@@ -179,6 +204,18 @@ impl Coordinates<i64> for Point {
             Self::GCS(_) => panic!("GCS points use f64 instead of i64."),
             Self::XY(point) => point.y,
         }
+    }
+}
+
+impl From<GCSPoint> for Point {
+    fn from(value: GCSPoint) -> Self {
+        Point::GCS(value)
+    }
+}
+
+impl From<XYPoint> for Point {
+    fn from(value: XYPoint) -> Self {
+        Point::XY(value)
     }
 }
 

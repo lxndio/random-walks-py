@@ -1,7 +1,9 @@
+//! Provides functionality for creating kernels, as well as pre-defined kernel generators.
+
 use crate::kernel::generator::KernelGenerator;
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
-use std::fmt::{Debug, Formatter, Write};
+use std::fmt::{Debug, Formatter};
 use std::ops::{Index, IndexMut, Mul, MulAssign};
 use strum::EnumIter;
 
@@ -174,6 +176,7 @@ impl MulAssign for Kernel {
     }
 }
 
+/// A macro that allows quick creation of a custom kernel.
 #[macro_export]
 macro_rules! kernel {
     ($($x:expr),+) => {{
@@ -204,6 +207,7 @@ pub enum Direction {
     Stay,
 }
 
+#[derive(Default, Debug)]
 pub struct Directions<T> {
     pub north: T,
     pub east: T,

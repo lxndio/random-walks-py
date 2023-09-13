@@ -1,11 +1,154 @@
+//! Provides functionality for loading and processing [`Dataset`s](Dataset).
+//!
+//! # Dataset Creation
+//!
+//! The easiest way to create a [`Dataset`] is to use the
+//! [`DatasetBuilder`](builder::DatasetBuilder).
+//!
+//! # Shrinking
+//!
+//! If only some specific entries of the dataset are relevant for later processing,
+//! [`keep()`](Dataset::keep) can be used to remove all [`DataPoint`s](Datapoint) that are outside
+//! of a specified index range. For example,
+//!
+//! ```
+//! # use randomwalks_lib::dataset::Dataset;
+//! # use randomwalks_lib::dataset::loader::CoordinateType;
+//! #
+//! # let mut dataset = Dataset::new(CoordinateType::XY);
+//! #
+//! dataset.keep(Some(1000), Some(2001));
+//! ```
+//!
+//! will remove all entries but the ones with indices in the range `[1000, 2001)`. Notice that the
+//! lower bound is inclusive, while the upper bound is exclusive. If one side of the range is
+//! unspecified (`None`), the range will be open in that side.
+//!
+//! # Filtering
+//!
+//! Datasets can be filtered using different [`DatasetFilter`s](DatasetFilter). See the
+//! documentation for a list of all filters including descriptions. A filter can be applied as
+//! follows:
+//!
+//! ```
+//! # use randomwalks_lib::dataset::{Dataset, DatasetFilter};
+//! # use randomwalks_lib::dataset::loader::CoordinateType;
+//! # use randomwalks_lib::xy;
+//! #
+//! # let mut dataset = Dataset::new(CoordinateType::XY);
+//! #
+//! dataset.filter(vec![
+//!     DatasetFilter::ByCoordinates(Point::XY(xy!(100, 100)), Point::XY(xy!(500, 500)));
+//! ]).unwrap();
+//! ```
+//!
+//! # Coordinate Conversion
+//!
+//! When loading a dataset with GCS coordinates, the coordinates have to be converted into XY
+//! coordinates, before generating random walks. For that purpose, the following function can be
+//! used.
+//!
+//! ```
+//! # use randomwalks_lib::dataset::Dataset;
+//! # use randomwalks_lib::dataset::loader::CoordinateType;
+//! #
+//! # let mut dataset = Dataset::new(CoordinateType::XY);
+//! #
+//! dataset.convert_gcs_to_xy(-10000, 10000).unwrap();
+//! ```
+//!
+//! When converting the coordinates, a range has to be specified to which the points get normalized.
+//! This range depends on the dataset loaded and has to be set correspondingly to allow for large
+//! enough distances between the points so that the points are different when represented using
+//! integer coordinates.
+//!
+//! # Generating Random Walks
+//!
+//! There are two ways to generate random walks from a dataset. The first option generates a single
+//! random walk and may be used if no more walks are needed or if implemented into some other
+//! processing logic.
+//!
+//! The following example generates a random walk between the data points with indices 0 and 1 with
+//! 400 time steps. A previously computed [`DynamicProgram`](crate::dp::DynamicProgram) and a
+//! [`Walker`](crate::walker::Walker) must be specified.
+//!
+//! ```
+//! # use randomwalks_lib::dataset::Dataset;
+//! # use randomwalks_lib::dataset::loader::CoordinateType;
+//! # use randomwalks_lib::dp::builder::DynamicProgramBuilder;
+//! # use randomwalks_lib::dp::DynamicProgram;
+//! # use randomwalks_lib::dp::simple::SimpleDynamicProgram;
+//! # use randomwalks_lib::kernel::Kernel;
+//! # use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
+//! # use randomwalks_lib::walker::standard::StandardWalker;
+//! #
+//! # let dataset = Dataset::new(CoordinateType::XY);
+//! # let dp = DynamicProgramBuilder::new()
+//! #     .simple()
+//! #     .time_limit(400)
+//! #     .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+//! #     .build()
+//! #     .unwrap();
+//! # let walker = Box::new(StandardWalker);
+//! #
+//! let path = dataset.rw_between(&dp, walker, 0, 1, 400).unwrap();
+//! ```
+//! It is also possible to generate many random walks between different pairs of points at once.
+//! To do this, the [`DatasetWalksBuilder`](DatasetWalksBuilder) can be used.
+//!
+//! The following example generates 10 random walks each between all neighboring pairs of data
+//! points between indices 0 and 100, i.e. 10 walks between data points 0 and 1, 10 walks between
+//! data points 1 and 2, and so on. All walks have 400 time steps each. A previously computed
+//! [`DynamicProgram`](crate::dp::DynamicProgram) and a [`Walker`](crate::walker::Walker) must be
+//! specified.
+//!
+//! ```
+//! # use randomwalks_lib::dataset::{Dataset, DatasetWalksBuilder};
+//! # use randomwalks_lib::dataset::loader::CoordinateType;
+//! # use randomwalks_lib::dp::builder::DynamicProgramBuilder;
+//! # use randomwalks_lib::dp::DynamicProgram;
+//! # use randomwalks_lib::dp::simple::SimpleDynamicProgram;
+//! # use randomwalks_lib::kernel::Kernel;
+//! # use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
+//! # use randomwalks_lib::walker::standard::StandardWalker;
+//! #
+//! # let dataset = Dataset::new(CoordinateType::XY);
+//! # let dp = DynamicProgramBuilder::new()
+//! #     .simple()
+//! #     .time_limit(400)
+//! #     .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+//! #     .build()
+//! #     .unwrap();
+//! # let walker = Box::new(StandardWalker);
+//! #
+//! let paths = DatasetWalksBuilder::new()
+//!     .dataset(&dataset)
+//!     .dp(&dp)
+//!     .walker(walker)
+//!     .from(0)
+//!     .to(100)
+//!     .count(10)
+//!     .time_steps(400)
+//!     .build()
+//!     .unwrap();
+//! ```
+//!
+//! Also, the number of time steps can be computed automatically. See the documentation of the
+//! [`DatasetWalksBuilder`](DatasetWalksBuilder) for more information.
+
+pub mod builder;
 pub mod loader;
 pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
 use crate::dp::DynamicProgram;
+use crate::walk::Walk;
 use crate::walker::standard::StandardWalker;
-use crate::walker::{Walk, Walker};
+use crate::walker::Walker;
 use anyhow::{anyhow, bail, Context};
+use line_drawing::Bresenham;
+use pathfinding::prelude::{build_path, dijkstra_all};
+#[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use point::{Coordinates, GCSPoint, Point, XYPoint};
 use rand::Rng;
@@ -17,11 +160,11 @@ use time::PrimitiveDateTime;
 /// A filter that can be applied to a [`Dataset`] by calling [`Dataset::filter`].
 #[derive(Debug)]
 pub enum DatasetFilter {
-    /// Filter the dataset by a given metadata key-value pair and only keeps points
+    /// Filters the dataset by a given metadata key-value pair and only keeps points
     /// which have the corresponding metadata entry.
     ByMetadata(String, String),
 
-    /// Filter the dataset by coordinates and only keeps points where the
+    /// Filters the dataset by coordinates and only keeps points where the
     /// coordinates are in the range `[from, to]`.
     ByCoordinates(Point, Point),
 }
@@ -70,6 +213,11 @@ impl Dataset {
     /// Return the number of [`Datapoint`]s in the dataset.
     pub fn len(&self) -> usize {
         self.data.len()
+    }
+
+    /// Returns whether the dataset is empty.
+    pub fn is_empty(&self) -> bool {
+        self.data.is_empty()
     }
 
     /// Return the coordinate type of the dataset.
@@ -128,11 +276,11 @@ impl Dataset {
                     DatasetFilter::ByCoordinates(from, to) => match self.coordinate_type {
                         CoordinateType::GCS => {
                             let Point::GCS(from) = from else {
-                                    return Err(anyhow!("Expected GCS coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected GCS coordinates in filter."));
+                            };
                             let Point::GCS(to) = to else {
-                                    return Err(anyhow!("Expected GCS coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected GCS coordinates in filter."));
+                            };
 
                             let x: f64 = datapoint.point.x();
                             let y: f64 = datapoint.point.y();
@@ -144,11 +292,11 @@ impl Dataset {
                         }
                         CoordinateType::XY => {
                             let Point::XY(from) = from else {
-                                    return Err(anyhow!("Expected XY coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected XY coordinates in filter."));
+                            };
                             let Point::XY(to) = to else {
-                                    return Err(anyhow!("Expected XY coordinates in filter."));
-                                };
+                                return Err(anyhow!("Expected XY coordinates in filter."));
+                            };
 
                             let x: i64 = datapoint.point.x();
                             let y: i64 = datapoint.point.y();
@@ -337,7 +485,7 @@ impl Dataset {
 
         let walk = walker
             .generate_path(
-                &dp,
+                dp,
                 translated_to.x as isize,
                 translated_to.y as isize,
                 time_steps,
@@ -347,8 +495,104 @@ impl Dataset {
         // Translate all coordinates in walk back to original coordinates
         Ok(walk
             .iter()
-            .map(|(x, y)| (x + from.x() as isize, y + from.y() as isize))
+            .map(|p| (p.x + from.x(), p.y + from.y()).into())
             .collect())
+    }
+
+    pub fn direct_between(&self, from: usize, to: usize) -> anyhow::Result<Walk> {
+        let from = &self.get(from).context("from index out of bounds.")?.point;
+        let to = &self.get(to).context("to index out of bounds.")?.point;
+
+        let Point::XY(from) = *from else {
+            bail!("Points have to be in XY coordinates.");
+        };
+        let Point::XY(to) = *to else {
+            bail!("Points have to be in XY coordinates.");
+        };
+
+        // Create graph from space between from and to
+
+        let (min_x, max_x) = (from.x.min(to.x), from.x.max(to.x));
+        let (min_y, max_y) = (from.y.min(to.y), from.y.max(to.y));
+
+        let mut vertices = Vec::new();
+        let mut edges = HashMap::new();
+
+        let important_vs: Vec<XYPoint> = Bresenham::new(from.into(), to.into())
+            .map(XYPoint::from)
+            .collect();
+
+        for x in min_x..=max_x {
+            for y in min_y..=max_y {
+                let mut adj = Vec::new();
+
+                if x > min_x {
+                    let p = XYPoint::from((x - 1, y));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+                if x < max_x {
+                    let p = XYPoint::from((x + 1, y));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+                if y > min_y {
+                    let p = XYPoint::from((x, y - 1));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+                if y < max_y {
+                    let p = XYPoint::from((x, y + 1));
+
+                    if important_vs.contains(&p) {
+                        adj.push((p, 0usize));
+                    } else {
+                        adj.push((p, 10usize));
+                    }
+                }
+
+                vertices.push(XYPoint::from((x, y)));
+                edges.insert(XYPoint::from((x, y)), adj);
+            }
+        }
+
+        // Run Dijkstra on graph
+
+        let successors = |i: &u32| {
+            let v = vertices[*i as usize];
+            let adj = edges[&v].clone();
+
+            adj.iter()
+                .map(|(v, weight)| {
+                    (
+                        vertices.iter().position(|x| x == v).unwrap() as u32,
+                        *weight,
+                    )
+                })
+                .collect::<Vec<(u32, usize)>>()
+        };
+
+        let from = vertices.iter().position(|x| x == &from).unwrap() as u32;
+        let to = vertices.iter().position(|x| x == &to).unwrap() as u32;
+
+        let reachables = dijkstra_all(&from, successors);
+        let walk = build_path(&to, &reachables);
+
+        let walk = walk.iter().map(|i| vertices[*i as usize]).collect();
+
+        Ok(walk)
     }
 
     /// Print all [`Datapoint`]s in the dataset with index in range [from, to).
@@ -367,6 +611,7 @@ impl Dataset {
     ///
     /// If `color_by` is `Some`, the points will be colored differently for each value of the
     /// given metadata key.
+    #[cfg(feature = "plotting")]
     pub fn plot(
         &self,
         path: String,
@@ -767,7 +1012,7 @@ impl<'a> DatasetWalksBuilder<'a> {
                 let walker = StandardWalker;
                 walks.push(
                     dataset
-                        .rw_between(&dp, Box::new(walker), i, i + 1, time_steps)
+                        .rw_between(dp, Box::new(walker), i, i + 1, time_steps)
                         .context("could not generate walk")?,
                 );
             }

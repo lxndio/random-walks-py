@@ -4,9 +4,11 @@ use num::Zero;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
-pub struct StandardWalker;
+pub struct MultiStepWalker {
+    pub max_step_size: usize,
+}
 
-impl Walker for StandardWalker {
+impl Walker for MultiStepWalker {
     fn generate_path(
         &self,
         dp: &DynamicProgram,
@@ -17,6 +19,7 @@ impl Walker for StandardWalker {
         let DynamicProgram::Simple(dp) = dp else {
             return Err(WalkerError::WrongDynamicProgramType);
         };
+        let max_step_size = self.max_step_size as isize;
 
         let mut path = Vec::new();
         let (mut x, mut y) = (to_x, to_y);
@@ -30,25 +33,24 @@ impl Walker for StandardWalker {
         for t in (1..=time_steps).rev() {
             path.push((x as i64, y as i64).into());
 
-            let prev_probs = [
-                dp.at(x, y, t - 1),     // Stay
-                dp.at(x - 1, y, t - 1), // West
-                dp.at(x, y - 1, t - 1), // North
-                dp.at(x + 1, y, t - 1), // East
-                dp.at(x, y + 1, t - 1), // South
-            ];
+            let mut prev_probs = Vec::new();
+            let mut movements = Vec::new();
+
+            for i in x - max_step_size..=x + max_step_size {
+                for j in y - max_step_size..=y + max_step_size {
+                    if i == x || j == y {
+                        prev_probs.push(dp.at(i, j, t - 1));
+                        movements.push((i - x, j - y));
+                    }
+                }
+            }
 
             let dist = WeightedIndex::new(prev_probs).unwrap();
             let direction = dist.sample(&mut rng);
+            let (dx, dy) = movements[direction];
 
-            match direction {
-                0 => (),     // Stay
-                1 => x -= 1, // West
-                2 => y -= 1, // North
-                3 => x += 1, // East
-                4 => y += 1, // South
-                _ => unreachable!("Other directions should not be chosen from the distribution"),
-            }
+            x += dx;
+            y += dy;
         }
 
         path.reverse();
@@ -59,9 +61,9 @@ impl Walker for StandardWalker {
 
     fn name(&self, short: bool) -> String {
         if short {
-            String::from("swg")
+            String::from("msw")
         } else {
-            String::from("Standard Walker")
+            String::from("Multi Step Walker")
         }
     }
 }

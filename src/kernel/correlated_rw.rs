@@ -75,7 +75,7 @@ impl KernelGenerator for CorrelatedRwGenerator {
 mod tests {
     use crate::kernel;
     use crate::kernel::correlated_rw::CorrelatedRwGenerator;
-    use crate::kernel::{Direction, Kernel};
+    use crate::kernel::Kernel;
 
     #[test]
     #[rustfmt::skip]
