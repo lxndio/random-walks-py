@@ -164,6 +164,7 @@ pub fn randomwalks_lib(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<kernel::Kernel>()?;
     m.add_class::<walker::standard::StandardWalker>()?;
     m.add_class::<walk::Walk>()?;
+    m.add_class::<dataset::point::GCSPoint>()?;
     m.add_class::<dataset::point::XYPoint>()?;
 
     Ok(())

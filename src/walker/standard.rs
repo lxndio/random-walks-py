@@ -16,6 +16,8 @@ impl StandardWalker {
         Self
     }
 
+    // Trait function wrappers for Python
+
     pub fn generate_path(
         &self,
         dp: SimpleDynamicProgram,
@@ -42,6 +44,10 @@ impl StandardWalker {
             to_y,
             time_steps,
         )
+    }
+
+    pub fn name(&self, short: bool) -> String {
+        Walker::name(self, short)
     }
 }
 
