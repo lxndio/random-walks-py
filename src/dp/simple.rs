@@ -145,7 +145,7 @@ impl SimpleDynamicProgram {
         Ok(format!("{}({})", class_name, slf.borrow().time_limit))
     }
 
-    pub fn __eq__(&self, other: &SimpleDynamicProgram) -> bool {
+    pub fn __eq__(&self, other: &Self) -> bool {
         self == other
     }
 }

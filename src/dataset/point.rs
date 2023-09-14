@@ -11,10 +11,42 @@ pub trait Coordinates<T: Signed> {
 }
 
 /// A 2d-point in geographic coordinate system (GCS).
+#[pyclass]
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct GCSPoint {
     pub x: f64,
     pub y: f64,
+}
+
+#[pymethods]
+impl GCSPoint {
+    #[new]
+    pub fn new(x: f64, y: f64) -> Self {
+        Self { x, y }
+    }
+
+    pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
+        let class_name: &str = slf.get_type().name()?;
+
+        Ok(format!(
+            "{}({}, {})",
+            class_name,
+            slf.borrow().x,
+            slf.borrow().y
+        ))
+    }
+
+    pub fn __add__(&self, other: &Self) -> Self {
+        *self + *other
+    }
+
+    pub fn __sub__(&self, other: &Self) -> Self {
+        *self - *other
+    }
+
+    pub fn __str__(&self) -> String {
+        self.to_string()
+    }
 }
 
 impl Coordinates<f64> for GCSPoint {
@@ -105,6 +137,18 @@ impl XYPoint {
             slf.borrow().x,
             slf.borrow().y
         ))
+    }
+
+    pub fn __add__(&self, other: &Self) -> Self {
+        *self + *other
+    }
+
+    pub fn __sub__(&self, other: &Self) -> Self {
+        *self - *other
+    }
+
+    pub fn __str__(&self) -> String {
+        self.to_string()
     }
 }
 
