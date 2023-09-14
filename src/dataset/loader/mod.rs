@@ -3,6 +3,7 @@ pub mod csv;
 pub mod polars;
 
 use crate::dataset::Datapoint;
+use pyo3::{pyclass, pymethods, FromPyObject, PyCell, PyResult};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -14,6 +15,7 @@ pub trait DatasetLoader {
     fn coordinate_type(&self) -> CoordinateType;
 }
 
+#[pyclass]
 #[derive(Error, Debug)]
 pub enum DatasetLoaderError {
     #[error("a column containing X coordinates must be specified")]
@@ -45,6 +47,7 @@ impl From<ColumnAction<&str>> for ColumnAction<String> {
 }
 
 /// The type of coordinates used in a dataset.
+#[pyclass]
 #[derive(Default, Debug, Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CoordinateType {
     /// Geographic coordinate system (GCS) coordinates.
@@ -53,4 +56,18 @@ pub enum CoordinateType {
 
     /// XY coordinates.
     XY,
+}
+
+#[pymethods]
+impl CoordinateType {
+    pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
+        let class_name: &str = slf.get_type().name()?;
+
+        let name = match *slf.borrow() {
+            CoordinateType::GCS => "GCS",
+            CoordinateType::XY => "XY",
+        };
+
+        Ok(format!("{}({})", class_name, name,))
+    }
 }

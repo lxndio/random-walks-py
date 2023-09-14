@@ -1,9 +1,12 @@
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
+use pyo3::pyclass;
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
+#[pyclass]
+#[derive(Clone)]
 pub struct MultiStepWalker {
     pub max_step_size: usize,
 }

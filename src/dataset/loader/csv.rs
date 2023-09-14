@@ -2,6 +2,7 @@ use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader, Datase
 use crate::dataset::point::{GCSPoint, Point, XYPoint};
 use crate::dataset::Datapoint;
 use anyhow::bail;
+use pyo3::{pyclass, pymethods};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -26,8 +27,62 @@ impl Default for CSVLoaderOptions {
     }
 }
 
+#[pyclass]
 pub struct CSVLoader {
     options: CSVLoaderOptions,
+}
+
+#[pymethods]
+impl CSVLoader {
+    #[new]
+    #[pyo3(signature = (
+        path,
+        delimiter=',',
+        header=false,
+        coordinate_type=CoordinateType::GCS,
+        columns=Vec::new(),
+    ))]
+    pub fn py_new(
+        path: String,
+        delimiter: char,
+        header: bool,
+        coordinate_type: CoordinateType,
+        columns: Vec<String>,
+    ) -> Self {
+        let mut column_actions = Vec::new();
+
+        for column in columns {
+            match column.as_str() {
+                "x" => column_actions.push(ColumnAction::KeepX),
+                "y" => column_actions.push(ColumnAction::KeepY),
+                "" => column_actions.push(ColumnAction::Discard),
+                key @ _ => column_actions.push(ColumnAction::KeepMetadata(key.into())),
+            }
+        }
+
+        let mut delimiter_bytes = [0; 4];
+        delimiter.encode_utf8(&mut delimiter_bytes);
+
+        CSVLoader::new(CSVLoaderOptions {
+            path,
+            delimiter: delimiter_bytes[0],
+            header,
+            column_actions,
+            coordinate_type,
+        })
+    }
+
+    pub fn load(&self) -> anyhow::Result<Vec<Datapoint>> {
+        DatasetLoader::load(self)
+    }
+
+    pub fn stream(&self) -> anyhow::Result<()> {
+        DatasetLoader::stream(self)
+    }
+
+    pub fn coordinate_type(&self) -> CoordinateType {
+        DatasetLoader::coordinate_type(self)
+    }
 }
 
 impl CSVLoader {

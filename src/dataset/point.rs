@@ -1,7 +1,7 @@
 //! Provides different formats for two-dimensional points.
 
 use num::Signed;
-use pyo3::{pyclass, pymethods, PyCell, PyResult};
+use pyo3::{pyclass, pymethods, FromPyObject, IntoPy, Py, PyCell, PyObject, PyResult, Python};
 use std::ops::{Add, Sub};
 
 /// Specifies points that have an X- and Y-coordinate.
@@ -225,13 +225,24 @@ macro_rules! xy {
 }
 
 /// A 2d-point in either GCS or XY coordinates.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, FromPyObject)]
 pub enum Point {
+    #[pyo3(transparent)]
     /// A 2d-point in geographic coordinate system (GCS).
     GCS(GCSPoint),
 
+    #[pyo3(transparent)]
     /// A 2d-point in XY coordinate system.
     XY(XYPoint),
+}
+
+impl IntoPy<PyObject> for Point {
+    fn into_py(self, py: Python<'_>) -> PyObject {
+        match self {
+            Point::GCS(gcs) => gcs.into_py(py),
+            Point::XY(xy) => xy.into_py(py),
+        }
+    }
 }
 
 impl Default for Point {

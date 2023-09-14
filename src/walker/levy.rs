@@ -1,9 +1,12 @@
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
+use pyo3::pyclass;
 use rand::distributions::{WeightedError, WeightedIndex};
 use rand::prelude::*;
 
+#[pyclass]
+#[derive(Clone)]
 pub struct LevyWalker {
     pub jump_probability: f64,
     pub jump_distance: usize,

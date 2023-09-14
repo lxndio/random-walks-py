@@ -93,7 +93,9 @@ pub trait DynamicPrograms {
 
 #[derive(FromPyObject)]
 pub enum DynamicProgram {
+    #[pyo3(transparent)]
     Simple(SimpleDynamicProgram),
+    #[pyo3(transparent)]
     Multi(MultiDynamicProgram),
 }
 

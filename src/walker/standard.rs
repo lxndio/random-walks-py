@@ -7,6 +7,7 @@ use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
 #[pyclass]
+#[derive(Clone)]
 pub struct StandardWalker;
 
 #[pymethods]

@@ -1,10 +1,13 @@
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
+use pyo3::pyclass;
 use rand::distributions::WeightedIndex;
 use rand::prelude::Distribution;
 use rand::Rng;
 
+#[pyclass]
+#[derive(Clone)]
 pub struct CorrelatedWalker;
 
 impl Walker for CorrelatedWalker {

@@ -166,6 +166,10 @@ pub fn randomwalks_lib(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<walk::Walk>()?;
     m.add_class::<dataset::point::GCSPoint>()?;
     m.add_class::<dataset::point::XYPoint>()?;
+    m.add_class::<dataset::Dataset>()?;
+    m.add_class::<dataset::Datapoint>()?;
+    m.add_class::<dataset::loader::DatasetLoaderError>()?;
+    m.add_class::<dataset::loader::csv::CSVLoader>()?;
 
     Ok(())
 }

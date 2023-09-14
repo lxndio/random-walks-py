@@ -7,8 +7,12 @@ pub mod standard;
 
 use crate::dp::DynamicProgram;
 use crate::walk::Walk;
+use crate::walker::correlated::CorrelatedWalker;
+use crate::walker::levy::LevyWalker;
+use crate::walker::multi_step::MultiStepWalker;
+use crate::walker::standard::StandardWalker;
 use pyo3::exceptions::PyValueError;
-use pyo3::{pyclass, PyErr};
+use pyo3::{pyclass, FromPyObject, PyErr};
 use thiserror::Error;
 
 pub trait Walker {
@@ -38,6 +42,18 @@ pub trait Walker {
     }
 
     fn name(&self, short: bool) -> String;
+}
+
+#[derive(FromPyObject)]
+pub enum WalkerType {
+    #[pyo3(transparent)]
+    Standard(StandardWalker),
+    #[pyo3(transparent)]
+    Correlated(CorrelatedWalker),
+    #[pyo3(transparent)]
+    MultiStep(MultiStepWalker),
+    #[pyo3(transparent)]
+    Levy(LevyWalker),
 }
 
 #[pyclass]
