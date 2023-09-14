@@ -7,6 +7,8 @@ pub mod standard;
 
 use crate::dp::DynamicProgram;
 use crate::walk::Walk;
+use pyo3::exceptions::PyValueError;
+use pyo3::{pyclass, PyErr};
 use thiserror::Error;
 
 pub trait Walker {
@@ -38,6 +40,7 @@ pub trait Walker {
     fn name(&self, short: bool) -> String;
 }
 
+#[pyclass]
 #[derive(Error, Debug)]
 pub enum WalkerError {
     #[error("wrong type of dynamic program given")]
@@ -51,4 +54,10 @@ pub enum WalkerError {
 
     #[error("error while computing random distribution")]
     RandomDistributionError,
+}
+
+impl From<WalkerError> for PyErr {
+    fn from(value: WalkerError) -> Self {
+        PyValueError::new_err(value.to_string())
+    }
 }

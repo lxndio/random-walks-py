@@ -3,6 +3,7 @@ use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::kernel;
 use crate::kernel::Kernel;
 use anyhow::{bail, Context};
+use pyo3::pyclass;
 use std::time::Instant;
 #[cfg(feature = "saving")]
 use {
@@ -12,6 +13,8 @@ use {
     zstd::{Decoder, Encoder},
 };
 
+#[pyclass]
+#[derive(Clone)]
 pub struct MultiDynamicProgram {
     pub(crate) table: Vec<Vec<Vec<Vec<f64>>>>,
     pub(crate) time_limit: usize,

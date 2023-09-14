@@ -16,14 +16,34 @@ use plotters::chart::ChartBuilder;
 use plotters::drawing::IntoDrawingArea;
 use plotters::element::{Circle, EmptyElement, Text};
 use plotters::prelude::{IntoFont, LineSeries, PointSeries, RGBColor, BLACK, WHITE};
+use pyo3::types::{PyList, PyType};
+use pyo3::{pyclass, pymethods, Py, PyCell, PyObject, PyRef, PyRefMut, PyResult};
 use rand::Rng;
 use std::collections::HashSet;
 use std::ops::{Index, Range};
 
+#[pyclass]
+pub struct WalkIterator {
+    inner: std::vec::IntoIter<XYPoint>,
+}
+
+#[pymethods]
+impl WalkIterator {
+    fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
+        slf
+    }
+
+    fn __next__(&mut self) -> Option<XYPoint> {
+        self.inner.next()
+    }
+}
+
 /// A random walk consisting of multiple points.
+#[pyclass]
 #[derive(Default, Debug, Clone, PartialEq)]
 pub struct Walk(pub Vec<XYPoint>);
 
+#[pymethods]
 impl Walk {
     // Returns the number of steps in the walk.
     pub fn len(&self) -> usize {
@@ -35,8 +55,10 @@ impl Walk {
         self.0.is_empty()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<XYPoint> {
-        self.0.iter()
+    pub fn __iter__(&self) -> WalkIterator {
+        WalkIterator {
+            inner: self.0.clone().into_iter(),
+        }
     }
 
     /// Computes the [Fréchet distance](https://en.wikipedia.org/wiki/Fr%C3%A9chet_distance) between
@@ -139,6 +161,31 @@ impl Walk {
                 })
                 .collect(),
         )
+    }
+
+    #[cfg(feature = "plotting")]
+    #[pyo3(name = "plot")]
+    pub fn py_plot(&self, filename: String) -> anyhow::Result<()> {
+        self.plot(filename)
+    }
+
+    #[cfg(feature = "plotting")]
+    #[staticmethod]
+    #[pyo3(name = "plot_multiple")]
+    pub fn py_plot_multiple(walks: Vec<Walk>, filename: String) -> anyhow::Result<()> {
+        Walk::plot_multiple(&walks, filename)
+    }
+
+    pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
+        let class_name: &str = slf.get_type().name()?;
+
+        Ok(format!("{}({})", class_name, slf.borrow().len()))
+    }
+}
+
+impl Walk {
+    pub fn iter(&self) -> std::slice::Iter<XYPoint> {
+        self.0.iter()
     }
 
     /// Plots a walk and saves the resulting image to a .png file.

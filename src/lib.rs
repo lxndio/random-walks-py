@@ -151,7 +151,6 @@
 
 use pyo3::prelude::PyModule;
 use pyo3::{pymodule, PyResult, Python};
-use crate::dp::simple::SimpleDynamicProgram;
 
 pub mod dataset;
 pub mod dp;
@@ -161,7 +160,11 @@ pub mod walker;
 
 #[pymodule]
 pub fn randomwalks_lib(py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<SimpleDynamicProgram>();
+    m.add_class::<dp::simple::SimpleDynamicProgram>()?;
+    m.add_class::<kernel::Kernel>()?;
+    m.add_class::<walker::standard::StandardWalker>()?;
+    m.add_class::<walk::Walk>()?;
+    m.add_class::<dataset::point::XYPoint>()?;
 
     Ok(())
 }

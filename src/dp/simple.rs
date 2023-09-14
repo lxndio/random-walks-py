@@ -4,11 +4,11 @@ use crate::kernel;
 use crate::kernel::Kernel;
 use anyhow::{bail, Context};
 use num::Zero;
-use std::fmt::Debug;
-use std::time::Instant;
-use pyo3::{pyclass, pymethods};
 #[cfg(feature = "plotting")]
 use plotters::prelude::*;
+use pyo3::{pyclass, pymethods};
+use std::fmt::Debug;
+use std::time::Instant;
 #[cfg(feature = "saving")]
 use {
     std::fs::File,
@@ -18,6 +18,7 @@ use {
 };
 
 #[pyclass]
+#[derive(Clone)]
 pub struct SimpleDynamicProgram {
     pub(crate) table: Vec<Vec<Vec<f64>>>,
     pub(crate) time_limit: usize,
@@ -27,6 +28,28 @@ pub struct SimpleDynamicProgram {
 
 #[pymethods]
 impl SimpleDynamicProgram {
+    #[new]
+    #[pyo3(signature = (time_limit, kernel, field_probabilities=Vec::new()))]
+    pub fn new(time_limit: usize, kernel: Kernel, mut field_probabilities: Vec<Vec<f64>>) -> Self {
+        if field_probabilities.is_empty() {
+            field_probabilities = vec![vec![1.0; 2 * time_limit + 1]; 2 * time_limit + 1];
+        }
+
+        Self {
+            table: vec![
+                vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
+                time_limit + 1
+            ],
+            time_limit,
+            kernel,
+            field_probabilities,
+        }
+    }
+
+    pub fn compute(&mut self) {
+        DynamicPrograms::compute(self);
+    }
+
     pub fn at(&self, x: isize, y: isize, t: usize) -> f64 {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
@@ -81,48 +104,48 @@ impl SimpleDynamicProgram {
         self.field_probabilities[x][y] = val;
     }
 
-    #[cfg(feature = "saving")]
-    pub fn load(filename: String) -> anyhow::Result<DynamicProgram> {
-        let file = File::open(filename)?;
-        let reader = BufReader::new(file);
-        let mut decoder = Decoder::new(reader).context("could not create decoder")?;
-
-        let mut time_limit = [0u8; 8];
-        let time_limit = match decoder.read_exact(&mut time_limit) {
-            Ok(()) => u64::from_le_bytes(time_limit),
-            Err(_) => bail!("could not read time limit from file"),
-        };
-
-        let DynamicProgram::Simple(mut dp) = DynamicProgramBuilder::new()
-            .simple()
-            .time_limit(time_limit as usize)
-            .kernel(kernel!(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
-            .build()?
-        else {
-            unreachable!();
-        };
-
-        let (limit_neg, limit_pos) = dp.limits();
-        let mut buf = [0u8; 8];
-
-        for t in 0..=limit_pos as usize {
-            for x in limit_neg..=limit_pos {
-                for y in limit_neg..=limit_pos {
-                    decoder.read_exact(&mut buf)?;
-                    dp.set(x, y, t, f64::from_le_bytes(buf));
-                }
-            }
-        }
-
-        for x in limit_neg..=limit_pos {
-            for y in limit_neg..=limit_pos {
-                decoder.read_exact(&mut buf)?;
-                dp.field_probability_set(x, y, f64::from_le_bytes(buf));
-            }
-        }
-
-        Ok(DynamicProgram::Simple(dp))
-    }
+    // #[cfg(feature = "saving")]
+    // pub fn load(filename: String) -> anyhow::Result<DynamicProgram> {
+    //     let file = File::open(filename)?;
+    //     let reader = BufReader::new(file);
+    //     let mut decoder = Decoder::new(reader).context("could not create decoder")?;
+    //
+    //     let mut time_limit = [0u8; 8];
+    //     let time_limit = match decoder.read_exact(&mut time_limit) {
+    //         Ok(()) => u64::from_le_bytes(time_limit),
+    //         Err(_) => bail!("could not read time limit from file"),
+    //     };
+    //
+    //     let DynamicProgram::Simple(mut dp) = DynamicProgramBuilder::new()
+    //         .simple()
+    //         .time_limit(time_limit as usize)
+    //         .kernel(kernel!(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    //         .build()?
+    //     else {
+    //         unreachable!();
+    //     };
+    //
+    //     let (limit_neg, limit_pos) = dp.limits();
+    //     let mut buf = [0u8; 8];
+    //
+    //     for t in 0..=limit_pos as usize {
+    //         for x in limit_neg..=limit_pos {
+    //             for y in limit_neg..=limit_pos {
+    //                 decoder.read_exact(&mut buf)?;
+    //                 dp.set(x, y, t, f64::from_le_bytes(buf));
+    //             }
+    //         }
+    //     }
+    //
+    //     for x in limit_neg..=limit_pos {
+    //         for y in limit_neg..=limit_pos {
+    //             decoder.read_exact(&mut buf)?;
+    //             dp.field_probability_set(x, y, f64::from_le_bytes(buf));
+    //         }
+    //     }
+    //
+    //     Ok(DynamicProgram::Simple(dp))
+    // }
 }
 
 impl DynamicPrograms for SimpleDynamicProgram {

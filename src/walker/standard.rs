@@ -1,10 +1,49 @@
+use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
+use pyo3::{pyclass, pymethods, PyAny};
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
+#[pyclass]
 pub struct StandardWalker;
+
+#[pymethods]
+impl StandardWalker {
+    #[new]
+    pub fn new() -> Self {
+        Self
+    }
+
+    pub fn generate_path(
+        &self,
+        dp: SimpleDynamicProgram,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Walk, WalkerError> {
+        Walker::generate_path(self, &DynamicProgram::Simple(dp), to_x, to_y, time_steps)
+    }
+
+    pub fn generate_paths(
+        &self,
+        dp: SimpleDynamicProgram,
+        qty: usize,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Vec<Walk>, WalkerError> {
+        Walker::generate_paths(
+            self,
+            &DynamicProgram::Simple(dp),
+            qty,
+            to_x,
+            to_y,
+            time_steps,
+        )
+    }
+}
 
 impl Walker for StandardWalker {
     fn generate_path(

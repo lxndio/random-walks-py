@@ -1,6 +1,7 @@
 //! Provides different formats for two-dimensional points.
 
 use num::Signed;
+use pyo3::{pyclass, pymethods, PyCell, PyResult};
 use std::ops::{Add, Sub};
 
 /// Specifies points that have an X- and Y-coordinate.
@@ -81,10 +82,30 @@ impl ToString for GCSPoint {
 }
 
 /// A 2d-point in XY coordinate system.
+#[pyclass(get_all, set_all)]
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct XYPoint {
     pub x: i64,
     pub y: i64,
+}
+
+#[pymethods]
+impl XYPoint {
+    #[new]
+    pub fn new(x: i64, y: i64) -> Self {
+        Self { x, y }
+    }
+
+    pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
+        let class_name: &str = slf.get_type().name()?;
+
+        Ok(format!(
+            "{}({}, {})",
+            class_name,
+            slf.borrow().x,
+            slf.borrow().y
+        ))
+    }
 }
 
 impl Coordinates<i64> for XYPoint {

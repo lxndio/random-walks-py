@@ -9,7 +9,7 @@ name = "randomwalks_lib"
 crate-type = ["cdylib"]
 
 [dependencies]
-pyo3 = { version = "0.19.2", features = ["extension-module"] }
+pyo3 = { version = "0.19.2", features = ["extension-module", "anyhow"] }
 num = { version = "0.4.0", features = ["rand"] }
 rand = "0.8.5"
 regex = "1.8.4"

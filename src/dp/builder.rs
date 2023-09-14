@@ -70,7 +70,6 @@ use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::{DynamicProgram, DynamicProgramType};
 use crate::kernel::Kernel;
 use num::Zero;
-use pyo3::{pyclass, pyfunction, pymethods};
 use thiserror::Error;
 
 /// An error that can occur when using a [`DynamicProgramBuilder`].

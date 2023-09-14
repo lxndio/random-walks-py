@@ -1,7 +1,9 @@
 //! Provides functionality for creating kernels, as well as pre-defined kernel generators.
 
 use crate::kernel::generator::KernelGenerator;
+use crate::kernel::simple_rw::SimpleRwGenerator;
 use anyhow::bail;
+use pyo3::{pyclass, pymethods};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Index, IndexMut, Mul, MulAssign};
@@ -13,10 +15,19 @@ pub mod correlated_rw;
 pub mod generator;
 pub mod simple_rw;
 
+#[pyclass]
 #[derive(Clone)]
 pub struct Kernel {
     pub probabilities: Vec<Vec<f64>>,
     name: (String, String),
+}
+
+#[pymethods]
+impl Kernel {
+    #[staticmethod]
+    pub fn simple_rw() -> Self {
+        Kernel::from_generator(SimpleRwGenerator).unwrap()
+    }
 }
 
 impl Kernel {

@@ -67,9 +67,9 @@
 //! can be run.
 //!
 
-use pyo3::pyclass;
 use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::simple::SimpleDynamicProgram;
+use pyo3::{pyclass, FromPyObject};
 use serde::{Deserialize, Serialize};
 
 pub mod builder;
@@ -91,6 +91,7 @@ pub trait DynamicPrograms {
     fn save(&self, filename: String) -> anyhow::Result<()>;
 }
 
+#[derive(FromPyObject)]
 pub enum DynamicProgram {
     Simple(SimpleDynamicProgram),
     Multi(MultiDynamicProgram),
