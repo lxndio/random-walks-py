@@ -141,7 +141,7 @@ pub mod loader;
 pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
-use crate::dp::DynamicProgram;
+use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::walk::Walk;
 use crate::walker::standard::StandardWalker;
 use crate::walker::{Walker, WalkerType};
@@ -303,9 +303,10 @@ impl Dataset {
     ///
     /// If `from` is `None`, then the range starts at the beginning of the dataset. If `to` is
     /// `None`, then the range ends at the end of the dataset.
-    pub fn keep(&mut self, from: Option<usize>, to: Option<usize>) {
-        let from = from.unwrap_or(0);
-        let to = to.unwrap_or(self.data.len());
+    #[pyo3(signature = (from_idx=None, to_idx=None))]
+    pub fn keep(&mut self, from_idx: Option<usize>, to_idx: Option<usize>) {
+        let from = from_idx.unwrap_or(0);
+        let to = to_idx.unwrap_or(self.data.len());
 
         self.data = self.data[from..to].to_vec();
     }
@@ -385,13 +386,18 @@ impl Dataset {
     /// Returns None if the dataset is empty. Otherwise, returns the minimum and maximum coordinates
     /// of the dataset as a tuple of two [`Point`]s. The first [`Point`] contains the minimum
     /// coordinates, and the second [`Point`] contains the maximum coordinates.
-    pub fn min_max(&self, from: Option<usize>, to: Option<usize>) -> Option<(Point, Point)> {
+    #[pyo3(signature = (from_idx=None, to_idx=None))]
+    pub fn min_max(
+        &self,
+        from_idx: Option<usize>,
+        to_idx: Option<usize>,
+    ) -> Option<(Point, Point)> {
         if self.data.is_empty() {
             return None;
         }
 
-        let from = from.unwrap_or(0);
-        let to = to.unwrap_or(self.data.len());
+        let from = from_idx.unwrap_or(0);
+        let to = to_idx.unwrap_or(self.data.len());
 
         match self.coordinate_type {
             CoordinateType::GCS => {
@@ -541,6 +547,55 @@ impl Dataset {
         slf.borrow().rw_between(&dp, walker, from, to, time_steps)
     }
 
+    #[pyo3(name = "generate_walks")]
+    #[pyo3(signature = (dp, walker, count=1, time_steps=None, by_time_diff=None, by_dist=None))]
+    pub fn py_generate_walks(
+        slf: &PyCell<Self>,
+        dp: PyObject,
+        walker: PyObject,
+        count: usize,
+        time_steps: Option<usize>,
+        by_time_diff: Option<(f64, String)>,
+        by_dist: Option<f64>,
+    ) -> anyhow::Result<Vec<Walk>> {
+        let dp: DynamicProgram = dp.extract(slf.py())?;
+        let walker: WalkerType = walker.extract(slf.py())?;
+
+        let walker: Box<dyn Walker> = match walker {
+            WalkerType::Standard(walker) => Box::new(walker),
+            WalkerType::Correlated(walker) => Box::new(walker),
+            WalkerType::MultiStep(walker) => Box::new(walker),
+            WalkerType::Levy(walker) => Box::new(walker),
+        };
+
+        let dataset = slf.borrow();
+
+        if let Some(time_steps) = time_steps {
+            DatasetWalksBuilder::new()
+                .dataset(&dataset)
+                .dp(&dp)
+                .count(count)
+                .time_steps(time_steps)
+                .build()
+        } else if let Some((time_step_len, metadata_key)) = by_time_diff {
+            DatasetWalksBuilder::new()
+                .dataset(&dataset)
+                .dp(&dp)
+                .count(count)
+                .time_steps_by_time(time_step_len, metadata_key)
+                .build()
+        } else if let Some(multiplier) = by_dist {
+            DatasetWalksBuilder::new()
+                .dataset(&dataset)
+                .dp(&dp)
+                .count(count)
+                .time_steps_by_dist(multiplier)
+                .build()
+        } else {
+            bail!("some time step computation method must be set")
+        }
+    }
+
     pub fn direct_between(&self, from: usize, to: usize) -> anyhow::Result<Walk> {
         let from = &self.get(from).context("from index out of bounds.")?.point;
         let to = &self.get(to).context("to index out of bounds.")?.point;
@@ -638,9 +693,10 @@ impl Dataset {
     }
 
     /// Print all [`Datapoint`]s in the dataset with index in range [from, to).
-    pub fn print(&self, from: Option<usize>, to: Option<usize>) {
-        let from = from.unwrap_or(0);
-        let to = to.unwrap_or(self.data.len());
+    #[pyo3(signature = (from_idx=None, to_idx=None))]
+    pub fn print(&self, from_idx: Option<usize>, to_idx: Option<usize>) {
+        let from = from_idx.unwrap_or(0);
+        let to = to_idx.unwrap_or(self.data.len());
 
         for i in from..to {
             println!("{}:\t{}", i, self.data[i].to_string());
@@ -654,27 +710,28 @@ impl Dataset {
     /// If `color_by` is `Some`, the points will be colored differently for each value of the
     /// given metadata key.
     #[cfg(feature = "plotting")]
+    #[pyo3(signature = (path, from_idx=None, to_idx=None, color_by=None))]
     pub fn plot(
         &self,
         path: String,
-        from: Option<usize>,
-        to: Option<usize>,
+        from_idx: Option<usize>,
+        to_idx: Option<usize>,
         color_by: Option<String>,
     ) -> anyhow::Result<()> {
         if self.coordinate_type == CoordinateType::GCS {
             unimplemented!("Plotting GCS points is not implemented.");
         }
 
-        let (min, max) = match self.min_max(from, to).unwrap() {
+        let (min, max) = match self.min_max(from_idx, to_idx).unwrap() {
             (Point::XY(min), Point::XY(max)) => (min, max),
             _ => unreachable!(),
         };
 
-        let from = from.unwrap_or(0);
-        let to = to.unwrap_or(self.data.len());
+        let from_idx = from_idx.unwrap_or(0);
+        let to = to_idx.unwrap_or(self.data.len());
 
         let coordinate_range_x = min.x..max.x;
-        let coordinate_range_y = min.y..max.y;
+        let coordinate_range_y = max.y..min.y;
 
         // Set colors for different classes
 
@@ -683,7 +740,7 @@ impl Dataset {
         if let Some(color_by) = &color_by {
             let mut class_colors = HashMap::new();
 
-            for datapoint in self.data.iter().skip(from).take(to) {
+            for datapoint in self.data.iter().skip(from_idx).take(to) {
                 class_colors.insert(
                     datapoint
                         .metadata
@@ -700,7 +757,7 @@ impl Dataset {
                 *color = RGBColor(rng.gen(), rng.gen(), rng.gen());
             }
 
-            for datapoint in self.data.iter().skip(from).take(to) {
+            for datapoint in self.data.iter().skip(from_idx).take(to) {
                 colors.insert(
                     (datapoint.point.x(), datapoint.point.y()),
                     class_colors[&datapoint.metadata[color_by]],
@@ -716,7 +773,7 @@ impl Dataset {
 
         let mut chart = ChartBuilder::on(&root)
             .caption(
-                format!("Dataset plot (points {} to {})", from, to),
+                format!("Dataset plot (points {} to {})", from_idx, to),
                 ("sans-serif", 20).into_font(),
             )
             .x_label_area_size(40)
@@ -725,7 +782,7 @@ impl Dataset {
 
         chart.configure_mesh().draw()?;
 
-        let iter = self.data.iter().skip(from).take(to).map(|datapoint| {
+        let iter = self.data.iter().skip(from_idx).take(to).map(|datapoint| {
             if let Point::XY(point) = &datapoint.point {
                 (point.x, point.y)
             } else {
@@ -873,6 +930,14 @@ impl Dataset {
         // condition that `from` is (0, 0)
         let translated_to = to - from;
 
+        // Check if `to` is still at a position where the walk can be computed with the given
+        // dynamic program
+        let (_, limit_pos) = dp.limits();
+
+        if translated_to.x.abs() > limit_pos as i64 || translated_to.y.abs() > limit_pos as i64 {
+            bail!("start and end point too far apart for given dynamic program");
+        }
+
         let walk = walker
             .generate_path(
                 dp,
@@ -996,6 +1061,7 @@ mod tests {
     }
 }
 
+#[pyclass]
 #[derive(Error, Debug)]
 pub enum DatasetWalksBuilderError {
     #[error("a dataset must be provided")]
@@ -1010,10 +1076,10 @@ pub enum DatasetWalksBuilderError {
     DatasetNotXY,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub enum TimeStepsBy {
     Fixed(usize),
-    TimeDifference(f64, &'static str),
+    TimeDifference(f64, String),
     Distance(f64),
     #[default]
     None,
@@ -1099,8 +1165,12 @@ impl<'a> DatasetWalksBuilder<'a> {
     /// two points. The time difference is then mapped to time steps using `time_step_len` which
     /// specifies the length of a time step in seconds. `metadata_key` specifies where
     /// timestamps are stored for each point.
-    pub fn time_steps_by_time(mut self, time_step_len: f64, metadata_key: &'static str) -> Self {
-        self.time_steps = TimeStepsBy::TimeDifference(time_step_len, metadata_key);
+    pub fn time_steps_by_time<S: Into<String>>(
+        mut self,
+        time_step_len: f64,
+        metadata_key: S,
+    ) -> Self {
+        self.time_steps = TimeStepsBy::TimeDifference(time_step_len, metadata_key.into());
 
         self
     }
@@ -1140,11 +1210,11 @@ impl<'a> DatasetWalksBuilder<'a> {
         let mut walks = Vec::new();
 
         for i in self.from..to {
-            let time_steps = match self.time_steps {
+            let time_steps = match self.time_steps.clone() {
                 TimeStepsBy::Fixed(time_steps) => time_steps,
                 TimeStepsBy::TimeDifference(time_step_len, metadata_key) => {
                     let datetime1 = PrimitiveDateTime::parse(
-                        dataset.get(i).unwrap().metadata.get(metadata_key).unwrap(),
+                        dataset.get(i).unwrap().metadata.get(&metadata_key).unwrap(),
                         &format,
                     )?;
                     let datetime2 = PrimitiveDateTime::parse(
@@ -1152,7 +1222,7 @@ impl<'a> DatasetWalksBuilder<'a> {
                             .get(i + 1)
                             .unwrap()
                             .metadata
-                            .get(metadata_key)
+                            .get(&metadata_key)
                             .unwrap(),
                         &format,
                     )?;
@@ -1175,8 +1245,6 @@ impl<'a> DatasetWalksBuilder<'a> {
                     let (x2, y2): (i64, i64) = (point2.x(), point2.y());
 
                     let dist = (x1 - x2).abs() + (y1 - y2).abs();
-
-                    println!("Time steps: {}", (dist as f64 * multiplier) as usize);
 
                     (dist as f64 * multiplier) as usize
                 }
