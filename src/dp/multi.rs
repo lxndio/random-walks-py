@@ -3,8 +3,10 @@ use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::kernel;
 use crate::kernel::Kernel;
 use anyhow::{bail, Context};
-use pyo3::pyclass;
+use num::Zero;
+use pyo3::{pyclass, pymethods, PyCell, PyResult};
 use std::time::Instant;
+
 #[cfg(feature = "saving")]
 use {
     std::fs::File,
@@ -22,7 +24,33 @@ pub struct MultiDynamicProgram {
     pub(crate) field_probabilities: Vec<Vec<f64>>,
 }
 
+#[pymethods]
 impl MultiDynamicProgram {
+    #[new]
+    #[pyo3(signature = (time_limit, kernels, field_probabilities=Vec::new()))]
+    pub fn new(
+        time_limit: usize,
+        kernels: Vec<Kernel>,
+        mut field_probabilities: Vec<Vec<f64>>,
+    ) -> Self {
+        if field_probabilities.is_empty() {
+            field_probabilities = vec![vec![1.0; 2 * time_limit + 1]; 2 * time_limit + 1];
+        }
+
+        Self {
+            table: vec![
+                vec![
+                    vec![vec![Zero::zero(); 2 * time_limit + 1]; 2 * time_limit + 1];
+                    kernels.len()
+                ];
+                time_limit + 1
+            ],
+            time_limit,
+            kernels,
+            field_probabilities,
+        }
+    }
+
     pub fn at(&self, x: isize, y: isize, t: usize, variant: usize) -> f64 {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
@@ -83,6 +111,57 @@ impl MultiDynamicProgram {
         self.field_probabilities[x][y] = val;
     }
 
+    #[staticmethod]
+    #[pyo3(name = "load")]
+    pub fn py_load(filename: String) -> anyhow::Result<MultiDynamicProgram> {
+        match MultiDynamicProgram::load(filename) {
+            Ok(DynamicProgram::Multi(dp)) => Ok(dp),
+            Err(e) => Err(e),
+            _ => unreachable!(),
+        }
+    }
+
+    // Trait function wrappers for Python
+
+    pub fn limits(&self) -> (isize, isize) {
+        DynamicPrograms::limits(self)
+    }
+
+    pub fn compute(&mut self) {
+        DynamicPrograms::compute(self)
+    }
+
+    pub fn field_probabilities(&self) -> Vec<Vec<f64>> {
+        DynamicPrograms::field_probabilities(self)
+    }
+
+    pub fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
+        DynamicPrograms::heatmap(self, path, t)
+    }
+
+    pub fn print(&self, t: usize) {
+        DynamicPrograms::print(self, t)
+    }
+
+    #[cfg(feature = "saving")]
+    pub fn save(&self, filename: String) -> anyhow::Result<()> {
+        DynamicPrograms::save(self, filename)
+    }
+
+    // Python magic methods
+
+    pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
+        let class_name: &str = slf.get_type().name()?;
+
+        Ok(format!("{}({})", class_name, slf.borrow().time_limit))
+    }
+
+    pub fn __eq__(&self, other: &Self) -> bool {
+        self == other
+    }
+}
+
+impl MultiDynamicProgram {
     #[cfg(feature = "saving")]
     pub fn load(filename: String) -> anyhow::Result<DynamicProgram> {
         let file = File::open(filename)?;
