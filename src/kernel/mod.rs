@@ -1,5 +1,8 @@
 //! Provides functionality for creating kernels, as well as pre-defined kernel generators.
 
+use crate::kernel::biased_correlated_rw::BiasedCorrelatedRwGenerator;
+use crate::kernel::biased_rw::BiasedRwGenerator;
+use crate::kernel::correlated_rw::CorrelatedRwGenerator;
 use crate::kernel::generator::KernelGenerator;
 use crate::kernel::simple_rw::SimpleRwGenerator;
 use anyhow::bail;
@@ -27,6 +30,34 @@ impl Kernel {
     #[staticmethod]
     pub fn simple_rw() -> Self {
         Kernel::from_generator(SimpleRwGenerator).unwrap()
+    }
+
+    #[staticmethod]
+    pub fn biased_rw(probability: f64, direction: Direction) -> Self {
+        Kernel::from_generator(BiasedRwGenerator {
+            probability,
+            direction,
+        })
+        .unwrap()
+    }
+
+    #[staticmethod]
+    pub fn correlated_rw(persistence: f64) -> Vec<Self> {
+        Kernel::multiple_from_generator(CorrelatedRwGenerator { persistence }).unwrap()
+    }
+
+    #[staticmethod]
+    pub fn biased_correlated_rw(
+        probability: f64,
+        direction: Direction,
+        persistence: f64,
+    ) -> Vec<Self> {
+        Kernel::multiple_from_generator(BiasedCorrelatedRwGenerator {
+            probability,
+            direction,
+            persistence,
+        })
+        .unwrap()
     }
 }
 
@@ -208,6 +239,7 @@ macro_rules! kernel {
     }}
 }
 
+#[pyclass]
 #[derive(Default, Debug, PartialEq, Copy, Clone, EnumIter, Serialize, Deserialize)]
 pub enum Direction {
     North,
