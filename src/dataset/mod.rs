@@ -171,6 +171,39 @@ pub enum DatasetFilter {
     ByCoordinates(Point, Point),
 }
 
+#[pyclass]
+#[pyo3(name = "DatasetFilter")]
+#[derive(Clone)]
+pub struct PyDatasetFilter {
+    key: Option<String>,
+    value: Option<String>,
+    from: Option<Point>,
+    to: Option<Point>,
+}
+
+#[pymethods]
+impl PyDatasetFilter {
+    #[staticmethod]
+    pub fn by_metadata(key: String, value: String) -> Self {
+        Self {
+            key: Some(key),
+            value: Some(value),
+            from: None,
+            to: None,
+        }
+    }
+
+    #[staticmethod]
+    pub fn by_coordinates(from: Point, to: Point) -> Self {
+        Self {
+            key: None,
+            value: None,
+            from: Some(from),
+            to: Some(to),
+        }
+    }
+}
+
 /// A point in a dataset consisting of a [`Point`] and a set of metadata key-value pairs.
 #[pyclass]
 #[derive(Debug, Clone, PartialEq)]
@@ -181,6 +214,12 @@ pub struct Datapoint {
 
 #[pymethods]
 impl Datapoint {
+    pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
+        let class_name: &str = slf.get_type().name()?;
+
+        Ok(format!("{}{}", class_name, slf.borrow().point.to_string()))
+    }
+
     pub fn __str__(&self) -> String {
         self.to_string()
     }
@@ -229,11 +268,8 @@ impl Dataset {
         }
     }
 
-    // TODO from loader
-
-    /// Return the number of [`Datapoint`]s in the dataset.
-    pub fn len(&self) -> usize {
-        self.data.len()
+    pub fn __len__(&self) -> usize {
+        self.len()
     }
 
     /// Returns whether the dataset is empty.
@@ -274,74 +310,75 @@ impl Dataset {
         self.data = self.data[from..to].to_vec();
     }
 
-    /// Remove all datapoints from the dataset, keeping only the datapoints that match
-    /// the given [`DatasetFilter`]s.
-    ///
-    /// Returns an error if a filter is invalid, otherwise returns the number of datapoints
-    /// that were kept.
-    // TODO make filter work
-    // pub fn filter(&mut self, filters: Vec<DatasetFilter>) -> anyhow::Result<usize> {
-    //     let mut filtered_data = Vec::new();
-    //
-    //     for datapoint in self.data.iter() {
-    //         let mut keep = true;
-    //
-    //         for filter in filters.iter() {
-    //             match filter {
-    //                 DatasetFilter::ByMetadata(key, value) => {
-    //                     if datapoint.metadata.get(key) != Some(value) {
-    //                         keep = false;
-    //                         break;
-    //                     }
-    //                 }
-    //                 DatasetFilter::ByCoordinates(from, to) => match self.coordinate_type {
-    //                     CoordinateType::GCS => {
-    //                         let Point::GCS(from) = from else {
-    //                             return Err(anyhow!("Expected GCS coordinates in filter."));
-    //                         };
-    //                         let Point::GCS(to) = to else {
-    //                             return Err(anyhow!("Expected GCS coordinates in filter."));
-    //                         };
-    //
-    //                         let x: f64 = datapoint.point.x();
-    //                         let y: f64 = datapoint.point.y();
-    //
-    //                         if x < from.x || x > to.x || y < from.y || y > to.y {
-    //                             keep = false;
-    //                             break;
-    //                         }
-    //                     }
-    //                     CoordinateType::XY => {
-    //                         let Point::XY(from) = from else {
-    //                             return Err(anyhow!("Expected XY coordinates in filter."));
-    //                         };
-    //                         let Point::XY(to) = to else {
-    //                             return Err(anyhow!("Expected XY coordinates in filter."));
-    //                         };
-    //
-    //                         let x: i64 = datapoint.point.x();
-    //                         let y: i64 = datapoint.point.y();
-    //
-    //                         if x < from.x || x > to.x || y < from.y || y > to.y {
-    //                             keep = false;
-    //                             break;
-    //                         }
-    //                     }
-    //                 },
-    //             }
-    //         }
-    //
-    //         if keep {
-    //             filtered_data.push(datapoint.clone());
-    //         }
-    //     }
-    //
-    //     let filtered = filtered_data.len();
-    //
-    //     self.data = filtered_data;
-    //
-    //     Ok(filtered)
-    // }
+    #[pyo3(name = "filter")]
+    pub fn py_filter(&mut self, filter: PyDatasetFilter) -> anyhow::Result<usize> {
+        let mut filtered_data = Vec::new();
+
+        for datapoint in self.data.iter() {
+            let mut keep = true;
+
+            match filter.clone() {
+                PyDatasetFilter {
+                    key: Some(key),
+                    value: Some(value),
+                    from: None,
+                    to: None,
+                } => {
+                    if datapoint.metadata.get(&key) != Some(&value) {
+                        keep = false;
+                    }
+                }
+                PyDatasetFilter {
+                    key: None,
+                    value: None,
+                    from: Some(from),
+                    to: Some(to),
+                } => match self.coordinate_type {
+                    CoordinateType::GCS => {
+                        let Point::GCS(from) = from else {
+                            return Err(anyhow!("Expected GCS coordinates in filter."));
+                        };
+                        let Point::GCS(to) = to else {
+                            return Err(anyhow!("Expected GCS coordinates in filter."));
+                        };
+
+                        let x: f64 = datapoint.point.x();
+                        let y: f64 = datapoint.point.y();
+
+                        if x < from.x || x > to.x || y < from.y || y > to.y {
+                            keep = false;
+                        }
+                    }
+                    CoordinateType::XY => {
+                        let Point::XY(from) = from else {
+                            return Err(anyhow!("Expected XY coordinates in filter."));
+                        };
+                        let Point::XY(to) = to else {
+                            return Err(anyhow!("Expected XY coordinates in filter."));
+                        };
+
+                        let x: i64 = datapoint.point.x();
+                        let y: i64 = datapoint.point.y();
+
+                        if x < from.x || x > to.x || y < from.y || y > to.y {
+                            keep = false;
+                        }
+                    }
+                },
+                _ => unreachable!("only the above two combinations exist"),
+            }
+
+            if keep {
+                filtered_data.push(datapoint.clone());
+            }
+        }
+
+        let filtered = filtered_data.len();
+
+        self.data = filtered_data;
+
+        Ok(filtered)
+    }
 
     /// Find the minimum and maximum coordinates of the dataset.
     ///
@@ -729,6 +766,11 @@ impl Dataset {
         })
     }
 
+    /// Return the number of [`Datapoint`]s in the dataset.
+    pub fn len(&self) -> usize {
+        self.data.len()
+    }
+
     /// Return an iterator over the [`Datapoint`]s in the dataset.
     pub fn iter(&self) -> std::slice::Iter<'_, Datapoint> {
         self.data.iter()
@@ -739,6 +781,74 @@ impl Dataset {
     /// Returns `None` if the index is out of bounds.
     pub fn get(&self, index: usize) -> Option<&Datapoint> {
         self.data.get(index)
+    }
+
+    /// Remove all datapoints from the dataset, keeping only the datapoints that match
+    /// the given [`DatasetFilter`]s.
+    ///
+    /// Returns an error if a filter is invalid, otherwise returns the number of datapoints
+    /// that were kept.
+    pub fn filter(&mut self, filters: Vec<DatasetFilter>) -> anyhow::Result<usize> {
+        let mut filtered_data = Vec::new();
+
+        for datapoint in self.data.iter() {
+            let mut keep = true;
+
+            for filter in filters.iter() {
+                match filter {
+                    DatasetFilter::ByMetadata(key, value) => {
+                        if datapoint.metadata.get(key) != Some(value) {
+                            keep = false;
+                            break;
+                        }
+                    }
+                    DatasetFilter::ByCoordinates(from, to) => match self.coordinate_type {
+                        CoordinateType::GCS => {
+                            let Point::GCS(from) = from else {
+                                return Err(anyhow!("Expected GCS coordinates in filter."));
+                            };
+                            let Point::GCS(to) = to else {
+                                return Err(anyhow!("Expected GCS coordinates in filter."));
+                            };
+
+                            let x: f64 = datapoint.point.x();
+                            let y: f64 = datapoint.point.y();
+
+                            if x < from.x || x > to.x || y < from.y || y > to.y {
+                                keep = false;
+                                break;
+                            }
+                        }
+                        CoordinateType::XY => {
+                            let Point::XY(from) = from else {
+                                return Err(anyhow!("Expected XY coordinates in filter."));
+                            };
+                            let Point::XY(to) = to else {
+                                return Err(anyhow!("Expected XY coordinates in filter."));
+                            };
+
+                            let x: i64 = datapoint.point.x();
+                            let y: i64 = datapoint.point.y();
+
+                            if x < from.x || x > to.x || y < from.y || y > to.y {
+                                keep = false;
+                                break;
+                            }
+                        }
+                    },
+                }
+            }
+
+            if keep {
+                filtered_data.push(datapoint.clone());
+            }
+        }
+
+        let filtered = filtered_data.len();
+
+        self.data = filtered_data;
+
+        Ok(filtered)
     }
 
     pub fn rw_between(

@@ -1,6 +1,6 @@
 use crate::dataset::loader::{ColumnAction, CoordinateType, DatasetLoader, DatasetLoaderError};
 use crate::dataset::point::{GCSPoint, Point, XYPoint};
-use crate::dataset::Datapoint;
+use crate::dataset::{Datapoint, Dataset};
 use anyhow::bail;
 use pyo3::{pyclass, pymethods};
 use serde::{Deserialize, Serialize};
@@ -72,8 +72,13 @@ impl CSVLoader {
         })
     }
 
-    pub fn load(&self) -> anyhow::Result<Vec<Datapoint>> {
-        DatasetLoader::load(self)
+    pub fn load(&self) -> anyhow::Result<Dataset> {
+        let datapoints = DatasetLoader::load(self)?;
+
+        Ok(Dataset {
+            data: datapoints,
+            coordinate_type: self.coordinate_type(),
+        })
     }
 
     pub fn stream(&self) -> anyhow::Result<()> {
