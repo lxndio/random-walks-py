@@ -1,7 +1,8 @@
+use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
-use pyo3::pyclass;
+use pyo3::{pyclass, pymethods};
 use rand::distributions::{WeightedError, WeightedIndex};
 use rand::prelude::*;
 
@@ -10,6 +11,51 @@ use rand::prelude::*;
 pub struct LevyWalker {
     pub jump_probability: f64,
     pub jump_distance: usize,
+}
+
+#[pymethods]
+impl LevyWalker {
+    #[new]
+    pub fn new(jump_probability: f64, jump_distance: usize) -> Self {
+        Self {
+            jump_probability,
+            jump_distance,
+        }
+    }
+
+    // Trait function wrappers for Python
+
+    pub fn generate_path(
+        &self,
+        dp: SimpleDynamicProgram,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Walk, WalkerError> {
+        Walker::generate_path(self, &DynamicProgram::Simple(dp), to_x, to_y, time_steps)
+    }
+
+    pub fn generate_paths(
+        &self,
+        dp: SimpleDynamicProgram,
+        qty: usize,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Vec<Walk>, WalkerError> {
+        Walker::generate_paths(
+            self,
+            &DynamicProgram::Simple(dp),
+            qty,
+            to_x,
+            to_y,
+            time_steps,
+        )
+    }
+
+    pub fn name(&self, short: bool) -> String {
+        Walker::name(self, short)
+    }
 }
 
 impl Walker for LevyWalker {

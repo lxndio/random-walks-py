@@ -1,7 +1,8 @@
+use crate::dp::simple::SimpleDynamicProgram;
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
-use pyo3::pyclass;
+use pyo3::{pyclass, pymethods};
 use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 
@@ -9,6 +10,48 @@ use rand::prelude::*;
 #[derive(Clone)]
 pub struct MultiStepWalker {
     pub max_step_size: usize,
+}
+
+#[pymethods]
+impl MultiStepWalker {
+    #[new]
+    pub fn new(max_step_size: usize) -> Self {
+        Self { max_step_size }
+    }
+
+    // Trait function wrappers for Python
+
+    pub fn generate_path(
+        &self,
+        dp: SimpleDynamicProgram,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Walk, WalkerError> {
+        Walker::generate_path(self, &DynamicProgram::Simple(dp), to_x, to_y, time_steps)
+    }
+
+    pub fn generate_paths(
+        &self,
+        dp: SimpleDynamicProgram,
+        qty: usize,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Vec<Walk>, WalkerError> {
+        Walker::generate_paths(
+            self,
+            &DynamicProgram::Simple(dp),
+            qty,
+            to_x,
+            to_y,
+            time_steps,
+        )
+    }
+
+    pub fn name(&self, short: bool) -> String {
+        Walker::name(self, short)
+    }
 }
 
 impl Walker for MultiStepWalker {

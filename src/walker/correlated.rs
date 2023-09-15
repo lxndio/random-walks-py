@@ -1,7 +1,8 @@
+use crate::dp::multi::MultiDynamicProgram;
 use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
-use pyo3::pyclass;
+use pyo3::{pyclass, pymethods};
 use rand::distributions::WeightedIndex;
 use rand::prelude::Distribution;
 use rand::Rng;
@@ -9,6 +10,48 @@ use rand::Rng;
 #[pyclass]
 #[derive(Clone)]
 pub struct CorrelatedWalker;
+
+#[pymethods]
+impl CorrelatedWalker {
+    #[new]
+    pub fn new() -> Self {
+        Self
+    }
+
+    // Trait function wrappers for Python
+
+    pub fn generate_path(
+        &self,
+        dp: MultiDynamicProgram,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Walk, WalkerError> {
+        Walker::generate_path(self, &DynamicProgram::Multi(dp), to_x, to_y, time_steps)
+    }
+
+    pub fn generate_paths(
+        &self,
+        dp: MultiDynamicProgram,
+        qty: usize,
+        to_x: isize,
+        to_y: isize,
+        time_steps: usize,
+    ) -> Result<Vec<Walk>, WalkerError> {
+        Walker::generate_paths(
+            self,
+            &DynamicProgram::Multi(dp),
+            qty,
+            to_x,
+            to_y,
+            time_steps,
+        )
+    }
+
+    pub fn name(&self, short: bool) -> String {
+        Walker::name(self, short)
+    }
+}
 
 impl Walker for CorrelatedWalker {
     fn generate_path(
