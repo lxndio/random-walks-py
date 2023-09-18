@@ -159,11 +159,53 @@ pub mod walk;
 pub mod walker;
 
 #[pymodule]
-pub fn randomwalks_lib(py: Python<'_>, m: &PyModule) -> PyResult<()> {
-    m.add_class::<dp::simple::SimpleDynamicProgram>()?;
+fn randomwalks_lib(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<kernel::Kernel>()?;
-    m.add_class::<walker::standard::StandardWalker>()?;
+    m.add_class::<kernel::Direction>()?;
     m.add_class::<walk::Walk>()?;
+
+    add_module_dp(py, m)?;
+    add_module_walker(py, m)?;
+    add_module_dataset(py, m)?;
+
+    Ok(())
+}
+
+fn add_module_dp(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
+    let m = PyModule::new(py, "dp")?;
+
+    m.add_class::<dp::simple::SimpleDynamicProgram>()?;
+    m.add_class::<dp::multi::MultiDynamicProgram>()?;
+
+    parent.add_submodule(m)?;
+
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("randomwalks_lib.dp", m)?;
+
+    Ok(())
+}
+
+fn add_module_walker(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
+    let m = PyModule::new(py, "dp")?;
+
+    m.add_class::<walker::standard::StandardWalker>()?;
+    m.add_class::<walker::correlated::CorrelatedWalker>()?;
+    m.add_class::<walker::multi_step::MultiStepWalker>()?;
+    m.add_class::<walker::levy::LevyWalker>()?;
+
+    parent.add_submodule(m)?;
+
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("randomwalks_lib.walker", m)?;
+
+    Ok(())
+}
+
+fn add_module_dataset(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
+    let m = PyModule::new(py, "dp")?;
+
     m.add_class::<dataset::point::GCSPoint>()?;
     m.add_class::<dataset::point::XYPoint>()?;
     m.add_class::<dataset::Dataset>()?;
@@ -171,6 +213,12 @@ pub fn randomwalks_lib(py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<dataset::Datapoint>()?;
     m.add_class::<dataset::loader::DatasetLoaderError>()?;
     m.add_class::<dataset::loader::csv::CSVLoader>()?;
+
+    parent.add_submodule(m)?;
+
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("randomwalks_lib.dataset", m)?;
 
     Ok(())
 }
