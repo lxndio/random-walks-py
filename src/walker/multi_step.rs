@@ -3,7 +3,7 @@ use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use pyo3::{pyclass, pymethods};
-use rand::distributions::WeightedIndex;
+use rand::distributions::{WeightedError, WeightedIndex};
 use rand::prelude::*;
 
 #[pyclass]
