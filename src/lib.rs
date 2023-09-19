@@ -187,7 +187,7 @@ fn add_module_dp(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
 }
 
 fn add_module_walker(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
-    let m = PyModule::new(py, "dp")?;
+    let m = PyModule::new(py, "walker")?;
 
     m.add_class::<walker::standard::StandardWalker>()?;
     m.add_class::<walker::correlated::CorrelatedWalker>()?;
@@ -204,7 +204,7 @@ fn add_module_walker(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
 }
 
 fn add_module_dataset(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
-    let m = PyModule::new(py, "dp")?;
+    let m = PyModule::new(py, "dataset")?;
 
     m.add_class::<dataset::point::GCSPoint>()?;
     m.add_class::<dataset::point::XYPoint>()?;
