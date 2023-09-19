@@ -141,7 +141,7 @@ pub mod loader;
 pub mod point;
 
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
-use crate::dp::DynamicProgram;
+use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::walk::Walk;
 use crate::walker::standard::StandardWalker;
 use crate::walker::Walker;
@@ -483,6 +483,14 @@ impl Dataset {
         // condition that `from` is (0, 0)
         let translated_to = to - from;
 
+        // Check if `to` is still at a position where the walk can be computed with the given
+        // dynamic program
+        let (_, limit_pos) = dp.limits();
+
+        if translated_to.x.abs() > limit_pos as i64 || translated_to.y.abs() > limit_pos as i64 {
+            bail!("start and end point too far apart for given dynamic program");
+        }
+
         let walk = walker
             .generate_path(
                 dp,
@@ -632,7 +640,7 @@ impl Dataset {
         let to = to.unwrap_or(self.data.len());
 
         let coordinate_range_x = min.x..max.x;
-        let coordinate_range_y = min.y..max.y;
+        let coordinate_range_y = max.y..min.y;
 
         // Set colors for different classes
 
