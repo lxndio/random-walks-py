@@ -3,7 +3,7 @@ use crate::dp::DynamicProgram;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use pyo3::{pyclass, pymethods};
-use rand::distributions::WeightedIndex;
+use rand::distributions::{WeightedError, WeightedIndex};
 use rand::prelude::Distribution;
 use rand::Rng;
 
@@ -91,7 +91,7 @@ impl Walker for CorrelatedWalker {
 
         let last_direction = direction;
 
-        for t in (1..time_steps).rev() {
+        for t in (1..time_steps - 1).rev() {
             path.push((x as i64, y as i64).into());
 
             let variant: usize = match last_direction {
@@ -111,8 +111,11 @@ impl Walker for CorrelatedWalker {
                 dp.at(x, y + 1, t - 1, variant),
             ];
 
-            let dist = WeightedIndex::new(prev_probs).unwrap();
-            let direction = dist.sample(&mut rng);
+            let direction = match WeightedIndex::new(prev_probs) {
+                Ok(dist) => dist.sample(&mut rng),
+                Err(WeightedError::AllWeightsZero) => return Err(WalkerError::InconsistentPath),
+                _ => return Err(WalkerError::RandomDistributionError),
+            };
 
             match direction {
                 1 => x -= 1,

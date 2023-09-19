@@ -76,7 +76,7 @@ impl Walker for MultiStepWalker {
             return Err(WalkerError::NoPathExists);
         }
 
-        for t in (1..=time_steps).rev() {
+        for t in (1..time_steps).rev() {
             path.push((x as i64, y as i64).into());
 
             let mut prev_probs = Vec::new();
@@ -91,8 +91,11 @@ impl Walker for MultiStepWalker {
                 }
             }
 
-            let dist = WeightedIndex::new(prev_probs).unwrap();
-            let direction = dist.sample(&mut rng);
+            let direction = match WeightedIndex::new(prev_probs) {
+                Ok(dist) => dist.sample(&mut rng),
+                Err(WeightedError::AllWeightsZero) => return Err(WalkerError::InconsistentPath),
+                _ => return Err(WalkerError::RandomDistributionError),
+            };
             let (dx, dy) = movements[direction];
 
             x += dx;
