@@ -2,7 +2,19 @@ import typing as t
 from enum import Enum
 
 class Kernel:
-    def __new__(cls, size: int = 3, short_name: str = "", long_name: str = "") -> 'Kernel': ...
+    """
+    A kernel.
+    """
+
+    def __new__(cls, size: int = 3, short_name: str = "", long_name: str = "") -> 'Kernel':
+        """
+        New kernel.
+
+        :param size:
+        :param short_name:
+        :param long_name:
+        """
+        ...
     @staticmethod
     def simple_rw() -> 'Kernel': ...
     @staticmethod
@@ -14,15 +26,22 @@ class Kernel:
     def size(self) -> int: ...
     def set(self, x: int, y: int, val: float): ...
     def at(self, x: int, y: int) -> float: ...
-    def rotate(self, degrees: int): ...
+    def rotate(self, degrees: int):
+        """
+        Rotate it.
+
+        :param degrees:
+        :return:
+        """
+        ...
     def name(self, short: bool) -> str: ...
 
 class Direction(Enum):
-    NORTH = 1
-    EAST = 2
-    SOUTH = 3
-    WEST = 4
-    STAY = 5
+    North = 1
+    East = 2
+    South = 3
+    West = 4
+    Stay = 5
 
 class Walk:
     def len(self) -> int: ...

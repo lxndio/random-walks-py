@@ -1,10 +1,10 @@
 from enum import Enum
 
 class WalkerError(Enum):
-    WRONG_DYNAMIC_PROGRAM_TYPE = 1
-    NO_PATH_EXISTS = 2,
-    INCONSISTENT_PATH = 3,
-    RANDOM_DISTRIBUTION_ERROR = 4
+    WrongDynamicProgramType = 1
+    NoPathExists = 2,
+    InconsistentPath = 3,
+    RandomDistributionError = 4
 
 class StandardWalker:
     def __new__(cls) -> 'StandardWalker': ...

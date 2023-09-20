@@ -52,9 +52,9 @@ class Datapoint:
     def __str__(self) -> str: ...
 
 class DatasetLoaderError(Enum):
-    NO_X_COLUMN_SPECIFIED = 1
-    NO_Y_COLUMN_SPECIFIED = 2
-    MORE_COLUMNS_THAN_ACTIONS = 3
+    NoXColumnSpecified = 1
+    NoYColumnSpecified = 2
+    MoreColumnsThanActions = 3
 
 class CoordinateType(Enum):
     GCS = 1
