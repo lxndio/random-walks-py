@@ -189,6 +189,7 @@ fn add_module_dp(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
 fn add_module_walker(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
     let m = PyModule::new(py, "walker")?;
 
+    m.add_class::<walker::WalkerError>()?;
     m.add_class::<walker::standard::StandardWalker>()?;
     m.add_class::<walker::correlated::CorrelatedWalker>()?;
     m.add_class::<walker::multi_step::MultiStepWalker>()?;
@@ -212,6 +213,7 @@ fn add_module_dataset(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
     m.add_class::<dataset::PyDatasetFilter>()?;
     m.add_class::<dataset::Datapoint>()?;
     m.add_class::<dataset::loader::DatasetLoaderError>()?;
+    m.add_class::<dataset::loader::CoordinateType>()?;
     m.add_class::<dataset::loader::csv::CSVLoader>()?;
 
     parent.add_submodule(m)?;

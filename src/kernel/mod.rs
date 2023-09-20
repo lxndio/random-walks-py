@@ -27,6 +27,19 @@ pub struct Kernel {
 
 #[pymethods]
 impl Kernel {
+    #[new]
+    #[pyo3(signature = (size = 3, short_name = String::new(), long_name = String::new()))]
+    pub fn py_new(size: usize, short_name: String, long_name: String) -> anyhow::Result<Self> {
+        if size % 2 == 0 {
+            bail!("size must be odd");
+        }
+
+        Ok(Self {
+            probabilities: vec![vec![0.0; size]; size],
+            name: (short_name, long_name),
+        })
+    }
+
     #[staticmethod]
     pub fn simple_rw() -> Self {
         Kernel::from_generator(SimpleRwGenerator).unwrap()
@@ -58,6 +71,57 @@ impl Kernel {
             persistence,
         })
         .unwrap()
+    }
+
+    pub fn size(&self) -> usize {
+        self.probabilities.len()
+    }
+
+    pub fn set(&mut self, x: isize, y: isize, val: f64) {
+        let x = ((self.probabilities.len() / 2) as isize + x) as usize;
+        let y = ((self.probabilities.len() / 2) as isize + y) as usize;
+
+        self.probabilities[x][y] = val;
+    }
+
+    pub fn at(&self, x: isize, y: isize) -> f64 {
+        let x = ((self.probabilities.len() / 2) as isize + x) as usize;
+        let y = ((self.probabilities.len() / 2) as isize + y) as usize;
+
+        self.probabilities[x][y]
+    }
+
+    /// Rotate kernel matrix clockwise by `degrees`. Only multiples of 90° are supported.
+    pub fn rotate(&mut self, degrees: usize) -> anyhow::Result<()> {
+        if degrees % 90 != 0 {
+            bail!("degrees must be a multiple of 90")
+        } else {
+            let n = self.probabilities.len();
+
+            for _ in 0..degrees / 90 {
+                // Source: https://www.enjoyalgorithms.com/blog/rotate-a-matrix-by-90-degrees-in-an-anticlockwise-direction
+                for i in 0..n / 2 {
+                    for j in i..n - i - 1 {
+                        let temp = self.probabilities[i][j];
+
+                        self.probabilities[i][j] = self.probabilities[j][n - 1 - i];
+                        self.probabilities[j][n - 1 - i] = self.probabilities[n - 1 - i][n - 1 - j];
+                        self.probabilities[n - 1 - i][n - 1 - j] = self.probabilities[n - 1 - j][i];
+                        self.probabilities[n - 1 - j][i] = temp;
+                    }
+                }
+            }
+
+            Ok(())
+        }
+    }
+
+    pub fn name(&self, short: bool) -> String {
+        if short {
+            self.name.0.clone()
+        } else {
+            self.name.1.clone()
+        }
     }
 }
 
@@ -106,57 +170,6 @@ impl Kernel {
             Ok(())
         } else {
             bail!("size must be odd");
-        }
-    }
-
-    pub fn size(&self) -> usize {
-        self.probabilities.len()
-    }
-
-    pub fn set(&mut self, x: isize, y: isize, val: f64) {
-        let x = ((self.probabilities.len() / 2) as isize + x) as usize;
-        let y = ((self.probabilities.len() / 2) as isize + y) as usize;
-
-        self.probabilities[x][y] = val;
-    }
-
-    pub fn at(&self, x: isize, y: isize) -> f64 {
-        let x = ((self.probabilities.len() / 2) as isize + x) as usize;
-        let y = ((self.probabilities.len() / 2) as isize + y) as usize;
-
-        self.probabilities[x][y]
-    }
-
-    /// Rotate kernel matrix clockwise by `degrees`. Only multiples of 90° are supported.
-    pub fn rotate(&mut self, degrees: usize) -> Result<(), String> {
-        if degrees % 90 != 0 {
-            Err("degrees must be a multiple of 90.".into())
-        } else {
-            let n = self.probabilities.len();
-
-            for _ in 0..degrees / 90 {
-                // Source: https://www.enjoyalgorithms.com/blog/rotate-a-matrix-by-90-degrees-in-an-anticlockwise-direction
-                for i in 0..n / 2 {
-                    for j in i..n - i - 1 {
-                        let temp = self.probabilities[i][j];
-
-                        self.probabilities[i][j] = self.probabilities[j][n - 1 - i];
-                        self.probabilities[j][n - 1 - i] = self.probabilities[n - 1 - i][n - 1 - j];
-                        self.probabilities[n - 1 - i][n - 1 - j] = self.probabilities[n - 1 - j][i];
-                        self.probabilities[n - 1 - j][i] = temp;
-                    }
-                }
-            }
-
-            Ok(())
-        }
-    }
-
-    pub fn name(&self, short: bool) -> String {
-        if short {
-            self.name.0.clone()
-        } else {
-            self.name.1.clone()
         }
     }
 }

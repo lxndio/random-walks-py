@@ -194,12 +194,12 @@ impl PyDatasetFilter {
     }
 
     #[staticmethod]
-    pub fn by_coordinates(from: Point, to: Point) -> Self {
+    pub fn by_coordinates(from_point: Point, to_point: Point) -> Self {
         Self {
             key: None,
             value: None,
-            from: Some(from),
-            to: Some(to),
+            from: Some(from_point),
+            to: Some(to_point),
         }
     }
 }
@@ -468,7 +468,7 @@ impl Dataset {
     }
 
     /// Convert all GCS points in the dataset to XY points and normalize them to the range [from, to].
-    pub fn convert_gcs_to_xy(&mut self, from: i64, to: i64) -> anyhow::Result<()> {
+    pub fn convert_gcs_to_xy(&mut self, from_val: i64, to_val: i64) -> anyhow::Result<()> {
         if self.coordinate_type != CoordinateType::GCS {
             bail!("dataset is not in GCS coordinates");
         }
@@ -510,10 +510,12 @@ impl Dataset {
             match datapoint.point {
                 Point::GCS(_) => {
                     datapoint.point = Point::XY(XYPoint {
-                        x: ((temp_points[i].0 - min.0) / (max.0 - min.0) * (to - from) as f64
-                            + from as f64) as i64,
-                        y: ((temp_points[i].1 - min.1) / (max.1 - min.1) * (to - from) as f64
-                            + from as f64) as i64,
+                        x: ((temp_points[i].0 - min.0) / (max.0 - min.0)
+                            * (to_val - from_val) as f64
+                            + from_val as f64) as i64,
+                        y: ((temp_points[i].1 - min.1) / (max.1 - min.1)
+                            * (to_val - from_val) as f64
+                            + from_val as f64) as i64,
                     });
                 }
                 Point::XY(_) => (),
@@ -530,8 +532,8 @@ impl Dataset {
         slf: &PyCell<Self>,
         dp: PyObject,
         walker: PyObject,
-        from: usize,
-        to: usize,
+        from_idx: usize,
+        to_idx: usize,
         time_steps: usize,
     ) -> anyhow::Result<Walk> {
         let dp: DynamicProgram = dp.extract(slf.py())?;
@@ -544,7 +546,8 @@ impl Dataset {
             WalkerType::Levy(walker) => Box::new(walker),
         };
 
-        slf.borrow().rw_between(&dp, walker, from, to, time_steps)
+        slf.borrow()
+            .rw_between(&dp, walker, from_idx, to_idx, time_steps)
     }
 
     #[pyo3(name = "generate_walks")]
@@ -596,9 +599,12 @@ impl Dataset {
         }
     }
 
-    pub fn direct_between(&self, from: usize, to: usize) -> anyhow::Result<Walk> {
-        let from = &self.get(from).context("from index out of bounds.")?.point;
-        let to = &self.get(to).context("to index out of bounds.")?.point;
+    pub fn direct_between(&self, from_idx: usize, to_idx: usize) -> anyhow::Result<Walk> {
+        let from = &self
+            .get(from_idx)
+            .context("from index out of bounds.")?
+            .point;
+        let to = &self.get(to_idx).context("to index out of bounds.")?.point;
 
         let Point::XY(from) = *from else {
             bail!("Points have to be in XY coordinates.");
