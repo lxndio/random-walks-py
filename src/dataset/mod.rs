@@ -145,6 +145,7 @@ use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::walk::Walk;
 use crate::walker::standard::StandardWalker;
 use crate::walker::{Walker, WalkerType};
+use crate::xy;
 use anyhow::{anyhow, bail, Context};
 use line_drawing::Bresenham;
 use pathfinding::prelude::{build_path, dijkstra_all};
@@ -159,7 +160,6 @@ use std::collections::HashMap;
 use thiserror::Error;
 use time::macros::format_description;
 use time::PrimitiveDateTime;
-use crate::xy;
 
 /// A filter that can be applied to a [`Dataset`] by calling [`Dataset::filter`].
 #[derive(Debug)]
