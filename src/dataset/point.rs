@@ -11,7 +11,7 @@ pub trait Coordinates<T: Signed> {
 }
 
 /// A 2d-point in geographic coordinate system (GCS).
-#[pyclass]
+#[pyclass(get_all, set_all)]
 #[derive(Default, Debug, Clone, Copy, PartialEq)]
 pub struct GCSPoint {
     pub x: f64,
