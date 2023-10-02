@@ -542,7 +542,7 @@ impl Dataset {
         let dp: DynamicProgram = dp.extract(slf.py())?;
         let walker: WalkerType = walker.extract(slf.py())?;
 
-        let walker: Box<dyn Walker> = match walker {
+        let walker: &Box<dyn Walker> = &match walker {
             WalkerType::Standard(walker) => Box::new(walker),
             WalkerType::Correlated(walker) => Box::new(walker),
             WalkerType::MultiStep(walker) => Box::new(walker),
