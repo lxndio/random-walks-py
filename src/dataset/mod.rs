@@ -145,12 +145,14 @@ use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::walk::Walk;
 use crate::walker::standard::StandardWalker;
 use crate::walker::Walker;
+use crate::xy;
 use anyhow::{anyhow, bail, Context};
 use line_drawing::Bresenham;
 use pathfinding::prelude::{build_path, dijkstra_all};
 #[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use point::{Coordinates, GCSPoint, Point, XYPoint};
+use proj::Proj;
 use rand::Rng;
 use std::collections::HashMap;
 use thiserror::Error;
@@ -404,59 +406,54 @@ impl Dataset {
     }
 
     /// Convert all GCS points in the dataset to XY points and normalize them to the range [from, to].
-    pub fn convert_gcs_to_xy(&mut self, from: i64, to: i64) -> Result<(), String> {
+    pub fn convert_gcs_to_xy(&mut self, scale: f64) -> anyhow::Result<()> {
         if self.coordinate_type != CoordinateType::GCS {
-            return Err("Dataset is not in GCS.".into());
+            bail!("dataset is not in GCS coordinates");
         }
 
-        let mut min = (f64::MAX, f64::MAX);
-        let mut max = (f64::MIN, f64::MIN);
-        let mut temp_points = vec![(0.0, 0.0); self.data.len()];
+        let from = "EPSG:4326";
+        let to = "EPSG:3857";
+        let conv = Proj::new_known_crs(&from, &to, None).unwrap();
 
-        for (i, datapoint) in self.data.iter_mut().enumerate() {
-            match &mut datapoint.point {
-                Point::GCS(point) => {
-                    let x = 6371.0 * point.x.to_radians().cos() * point.y.to_radians().cos();
-                    let y = 6371.0 * point.x.to_radians().cos() * point.y.to_radians().sin();
+        for datapoint in self.data.iter_mut() {
+            let Point::GCS(point) = datapoint.point.clone() else {
+                bail!("point not in GCS coordinates");
+            };
+            let new = conv
+                .convert((point.x, point.y))
+                .context("point conversion failed")?;
+            let new = XYPoint::from(((new.0 * scale) as i64, (new.1 * scale) as i64));
 
-                    temp_points[i] = (x, y);
-
-                    if x < min.0 {
-                        min.0 = x;
-                    }
-
-                    if y < min.1 {
-                        min.1 = y;
-                    }
-
-                    if x > max.0 {
-                        max.0 = x;
-                    }
-
-                    if y > max.1 {
-                        max.1 = y;
-                    }
-                }
-                Point::XY(_) => (),
-            }
-        }
-
-        // Normalize data to min-max range
-        for (i, datapoint) in self.data.iter_mut().enumerate() {
-            match datapoint.point {
-                Point::GCS(_) => {
-                    datapoint.point = Point::XY(XYPoint {
-                        x: ((temp_points[i].0 - min.0) / (max.0 - min.0) * (to - from) as f64
-                            + from as f64) as i64,
-                        y: ((temp_points[i].1 - min.1) / (max.1 - min.1) * (to - from) as f64
-                            + from as f64) as i64,
-                    });
-                }
-                Point::XY(_) => (),
-            }
+            datapoint.point = Point::XY(new);
         }
 
         self.coordinate_type = CoordinateType::XY;
+
+        Ok(())
+    }
+
+    pub fn convert_xy_to_gcs(&mut self, scale: f64) -> anyhow::Result<()> {
+        if self.coordinate_type != CoordinateType::XY {
+            bail!("dataset is not in XY coordinates");
+        }
+
+        let from = "EPSG:3857";
+        let to = "EPSG:4326";
+        let conv = Proj::new_known_crs(&from, &to, None).unwrap();
+
+        for datapoint in self.data.iter_mut() {
+            let Point::XY(point) = datapoint.point.clone() else {
+                bail!("point not in XY coordinates");
+            };
+            let new = GCSPoint::from(
+                conv.convert((point.x as f64 / scale, point.y as f64 / scale))
+                    .context("point conversion failed")?,
+            );
+
+            datapoint.point = Point::GCS(new);
+        }
+
+        self.coordinate_type = CoordinateType::GCS;
 
         Ok(())
     }
@@ -468,6 +465,7 @@ impl Dataset {
         from: usize,
         to: usize,
         time_steps: usize,
+        auto_scale: bool,
     ) -> anyhow::Result<Walk> {
         let from = &self.get(from).context("from index out of bounds.")?.point;
         let to = &self.get(to).context("to index out of bounds.")?.point;
@@ -481,7 +479,18 @@ impl Dataset {
 
         // Translate `to`, s.t. it still has the same relative position from `from`, under the
         // condition that `from` is (0, 0)
-        let translated_to = to - from;
+        let mut translated_to = to - from;
+
+        let mut scale = 0.0;
+        let dist = (translated_to.x.abs() + translated_to.y.abs()) as u64;
+
+        if auto_scale && dist > time_steps as u64 {
+            scale = dist as f64 / (time_steps - 1) as f64;
+            translated_to = xy!(
+                (translated_to.x as f64 / scale) as i64,
+                (translated_to.y as f64 / scale) as i64
+            );
+        }
 
         // Check if `to` is still at a position where the walk can be computed with the given
         // dynamic program
@@ -501,10 +510,23 @@ impl Dataset {
             .context("error while generating random walk path")?;
 
         // Translate all coordinates in walk back to original coordinates
-        Ok(walk
-            .iter()
-            .map(|p| (p.x + from.x(), p.y + from.y()).into())
-            .collect())
+        if auto_scale && dist > time_steps as u64 {
+            Ok(walk
+                .iter()
+                .map(|p| {
+                    (
+                        (p.x as f64 * scale) as i64 + from.x(),
+                        (p.y as f64 * scale) as i64 + from.y(),
+                    )
+                        .into()
+                })
+                .collect())
+        } else {
+            Ok(walk
+                .iter()
+                .map(|p| (p.x + from.x(), p.y + from.y()).into())
+                .collect())
+        }
     }
 
     pub fn direct_between(&self, from: usize, to: usize) -> anyhow::Result<Walk> {
@@ -825,6 +847,41 @@ mod tests {
             .iter()
             .all(|item| dataset.data.contains(item)));
     }
+
+    // #[test]
+    // fn test_rw_between_auto_scale() {
+    //     let mut dataset = Dataset::new(CoordinateType::XY);
+    //     dataset.push(Datapoint {
+    //         point: Point::XY(xy!(100, 100)),
+    //         metadata: HashMap::new(),
+    //     });
+    //     dataset.push(Datapoint {
+    //         point: Point::XY(xy!(250, 130)),
+    //         metadata: HashMap::new(),
+    //     });
+    //     dataset.push(Datapoint {
+    //         point: Point::XY(xy!(300, 100)),
+    //         metadata: HashMap::new(),
+    //     });
+    //
+    //     let mut dp = DynamicProgramBuilder::new()
+    //         .simple()
+    //         .time_limit(100)
+    //         .kernel(Kernel::from_generator(SimpleRwGenerator).unwrap())
+    //         .build()
+    //         .unwrap();
+    //
+    //     dp.compute();
+    //
+    //     let walker = StandardWalker;
+    //     let walk1 = dataset.rw_between(&dp, Box::new(walker.clone()), 0, 1, 100, true);
+    //     let walk2 = dataset.rw_between(&dp, Box::new(walker.clone()), 1, 2, 100, true);
+    //
+    //     println!("{:?}", walk1);
+    //     println!("{:?}", walk2);
+    //
+    //     println!("lens: {}, {}", walk1.unwrap().len(), walk2.unwrap().len());
+    // }
 }
 
 #[derive(Error, Debug)]
@@ -858,6 +915,7 @@ pub struct DatasetWalksBuilder<'a> {
     to: Option<usize>,
     count: usize,
     time_steps: TimeStepsBy,
+    auto_scale: bool,
 }
 
 impl<'a> Default for DatasetWalksBuilder<'a> {
@@ -870,6 +928,7 @@ impl<'a> Default for DatasetWalksBuilder<'a> {
             to: None,
             count: 1,
             time_steps: TimeStepsBy::None,
+            auto_scale: false,
         }
     }
 }
@@ -938,6 +997,18 @@ impl<'a> DatasetWalksBuilder<'a> {
 
     pub fn time_steps_by_dist(mut self, multiplier: f64) -> Self {
         self.time_steps = TimeStepsBy::Distance(multiplier);
+
+        self
+    }
+
+    pub fn auto_scale(mut self) -> Self {
+        self.auto_scale = true;
+
+        self
+    }
+
+    pub fn set_auto_scale(mut self, auto_scale: bool) -> Self {
+        self.auto_scale = auto_scale;
 
         self
     }
@@ -1020,7 +1091,7 @@ impl<'a> DatasetWalksBuilder<'a> {
                 let walker = StandardWalker;
                 walks.push(
                     dataset
-                        .rw_between(dp, Box::new(walker), i, i + 1, time_steps)
+                        .rw_between(dp, Box::new(walker), i, i + 1, time_steps, self.auto_scale)
                         .context("could not generate walk")?,
                 );
             }
