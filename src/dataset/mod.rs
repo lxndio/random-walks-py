@@ -143,7 +143,6 @@ pub mod point;
 use crate::dataset::loader::{CoordinateType, DatasetLoader};
 use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::walk::Walk;
-use crate::walker::standard::StandardWalker;
 use crate::walker::Walker;
 use crate::xy;
 use anyhow::{anyhow, bail, Context};
@@ -461,7 +460,7 @@ impl Dataset {
     pub fn rw_between(
         &self,
         dp: &DynamicProgram,
-        walker: Box<dyn Walker>,
+        walker: &Box<dyn Walker>,
         from: usize,
         to: usize,
         time_steps: usize,
@@ -910,7 +909,7 @@ pub enum TimeStepsBy {
 pub struct DatasetWalksBuilder<'a> {
     dataset: Option<&'a Dataset>,
     dp: Option<&'a DynamicProgram>,
-    walker: Option<Box<dyn Walker>>,
+    walker: Option<&'a Box<dyn Walker>>,
     from: usize,
     to: Option<usize>,
     count: usize,
@@ -952,7 +951,7 @@ impl<'a> DatasetWalksBuilder<'a> {
         self
     }
 
-    pub fn walker(mut self, walker: Box<dyn Walker>) -> Self {
+    pub fn walker(mut self, walker: &'a Box<dyn Walker>) -> Self {
         self.walker = Some(walker);
 
         self
@@ -1020,9 +1019,9 @@ impl<'a> DatasetWalksBuilder<'a> {
         let Some(dp) = self.dp else {
             return Err(DatasetWalksBuilderError::NoDynamicProgramSet)?;
         };
-        // let Some(walker) = self.walker else {
-        //     return Err(DatasetWalksBuilderError::NoWalkerSet)?;
-        // };
+        let Some(walker) = self.walker else {
+            return Err(DatasetWalksBuilderError::NoWalkerSet)?;
+        };
 
         if dataset.coordinate_type() != CoordinateType::XY {
             return Err(DatasetWalksBuilderError::DatasetNotXY)?;
@@ -1088,10 +1087,9 @@ impl<'a> DatasetWalksBuilder<'a> {
             };
 
             for _ in 0..self.count {
-                let walker = StandardWalker;
                 walks.push(
                     dataset
-                        .rw_between(dp, Box::new(walker), i, i + 1, time_steps, self.auto_scale)
+                        .rw_between(dp, walker, i, i + 1, time_steps, self.auto_scale)
                         .context("could not generate walk")?,
                 );
             }
