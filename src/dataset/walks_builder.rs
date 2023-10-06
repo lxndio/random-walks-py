@@ -6,6 +6,7 @@ use crate::walk::Walk;
 use crate::walker::Walker;
 use anyhow::Context;
 use thiserror::Error;
+use time::format_description::parse_borrowed;
 use time::macros::format_description;
 use time::PrimitiveDateTime;
 
@@ -40,6 +41,7 @@ pub struct DatasetWalksBuilder<'a> {
     to: Option<usize>,
     count: usize,
     time_steps: TimeStepsBy,
+    time_format: Option<&'static str>,
     auto_scale: bool,
 }
 
@@ -53,6 +55,7 @@ impl<'a> Default for DatasetWalksBuilder<'a> {
             to: None,
             count: 1,
             time_steps: TimeStepsBy::None,
+            time_format: None,
             auto_scale: false,
         }
     }
@@ -114,8 +117,22 @@ impl<'a> DatasetWalksBuilder<'a> {
     /// two points. The time difference is then mapped to time steps using `time_step_len` which
     /// specifies the length of a time step in seconds. `metadata_key` specifies where
     /// timestamps are stored for each point.
+    ///
+    /// Use [`time_format()`] to set the format of the time string. If not set, the default format
+    /// is used: `year-month-day hour:minute:second`.
     pub fn time_steps_by_time(mut self, time_step_len: f64, metadata_key: &'static str) -> Self {
         self.time_steps = TimeStepsBy::TimeDifference(time_step_len, metadata_key);
+
+        self
+    }
+
+    /// Set the format of time strings in metadata used with automatic computation of time steps
+    /// based on time difference.
+    ///
+    /// This only has an effect if used together with [`time_steps_by_time()`]. If not set, the
+    /// default format is used: `year-month-day hour:minute:second`.
+    pub fn time_format(mut self, format: &'static str) -> Self {
+        self.time_format = Some(format);
 
         self
     }
@@ -162,7 +179,10 @@ impl<'a> DatasetWalksBuilder<'a> {
             None => dataset.len() - 1,
         };
 
-        let format = format_description!("[year]-[month]-[day] [hour]:[minute]:[second]");
+        let format = match self.time_format {
+            Some(format) => parse_borrowed::<2>(format).context("invalid time format string")?,
+            None => format_description!("[year]-[month]-[day] [hour]:[minute]:[second]").to_vec(),
+        };
 
         let mut walks = Vec::new();
 
