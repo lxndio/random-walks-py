@@ -538,6 +538,7 @@ impl Dataset {
         to_idx: usize,
         time_steps: usize,
         auto_scale: bool,
+        extra_steps: usize,
     ) -> anyhow::Result<Walk> {
         let dp: DynamicProgram = dp.extract(slf.py())?;
         let walker: WalkerType = walker.extract(slf.py())?;
@@ -550,11 +551,11 @@ impl Dataset {
         };
 
         slf.borrow()
-            .rw_between(&dp, walker, from_idx, to_idx, time_steps, auto_scale)
+            .rw_between(&dp, walker, from_idx, to_idx, time_steps, auto_scale, extra_steps)
     }
 
     #[pyo3(name = "generate_walks")]
-    #[pyo3(signature = (dp, walker, count=1, time_steps=None, by_time_diff=None, by_dist=None, auto_scale=false))]
+    #[pyo3(signature = (dp, walker, count=1, time_steps=None, by_time_diff=None, by_dist=None, auto_scale=false, extra_steps=0))]
     pub fn py_generate_walks(
         slf: &PyCell<Self>,
         dp: PyObject,
@@ -564,6 +565,7 @@ impl Dataset {
         by_time_diff: Option<(f64, String)>,
         by_dist: Option<f64>,
         auto_scale: bool,
+        extra_steps: usize,
     ) -> anyhow::Result<Vec<Walk>> {
         let dp: DynamicProgram = dp.extract(slf.py())?;
         let walker: WalkerType = walker.extract(slf.py())?;
@@ -581,25 +583,31 @@ impl Dataset {
             DatasetWalksBuilder::new()
                 .dataset(&dataset)
                 .dp(&dp)
+                .walker(&walker)
                 .count(count)
                 .time_steps(time_steps)
                 .set_auto_scale(auto_scale)
+                .extra_steps(extra_steps)
                 .build()
         } else if let Some((time_step_len, metadata_key)) = by_time_diff {
             DatasetWalksBuilder::new()
                 .dataset(&dataset)
                 .dp(&dp)
+                .walker(&walker)
                 .count(count)
                 .time_steps_by_time(time_step_len, metadata_key)
                 .set_auto_scale(auto_scale)
+                .extra_steps(extra_steps)
                 .build()
         } else if let Some(multiplier) = by_dist {
             DatasetWalksBuilder::new()
                 .dataset(&dataset)
                 .dp(&dp)
+                .walker(&walker)
                 .count(count)
                 .time_steps_by_dist(multiplier)
                 .set_auto_scale(auto_scale)
+                .extra_steps(extra_steps)
                 .build()
         } else {
             bail!("some time step computation method must be set")
@@ -929,6 +937,7 @@ impl Dataset {
         to: usize,
         time_steps: usize,
         auto_scale: bool,
+        extra_steps: usize,
     ) -> anyhow::Result<Walk> {
         let from = &self.get(from).context("from index out of bounds.")?.point;
         let to = &self.get(to).context("to index out of bounds.")?.point;
@@ -948,7 +957,7 @@ impl Dataset {
         let dist = (translated_to.x.abs() + translated_to.y.abs()) as u64;
 
         if auto_scale && dist > time_steps as u64 {
-            scale = dist as f64 / (time_steps - 1) as f64;
+            scale = (dist as f64 + extra_steps as f64) / (time_steps - 1) as f64;
             translated_to = xy!((translated_to.x as f64 / scale) as i64, (translated_to.y as f64 / scale) as i64);
         }
 
@@ -1167,6 +1176,7 @@ pub struct DatasetWalksBuilder<'a> {
     count: usize,
     time_steps: TimeStepsBy,
     auto_scale: bool,
+    extra_steps: usize,
 }
 
 impl<'a> Default for DatasetWalksBuilder<'a> {
@@ -1180,6 +1190,7 @@ impl<'a> Default for DatasetWalksBuilder<'a> {
             count: 1,
             time_steps: TimeStepsBy::None,
             auto_scale: false,
+            extra_steps: 0,
         }
     }
 }
@@ -1268,6 +1279,12 @@ impl<'a> DatasetWalksBuilder<'a> {
         self
     }
 
+    pub fn extra_steps(mut self, extra_steps: usize) -> Self {
+        self.extra_steps = extra_steps;
+
+        self
+    }
+
     pub fn build(self) -> anyhow::Result<Vec<Walk>> {
         let Some(dataset) = self.dataset else {
             return Err(DatasetWalksBuilderError::NoDatasetSet)?;
@@ -1343,7 +1360,7 @@ impl<'a> DatasetWalksBuilder<'a> {
             for _ in 0..self.count {
                 walks.push(
                     dataset
-                        .rw_between(dp, walker, i, i + 1, time_steps, self.auto_scale)
+                        .rw_between(dp, walker, i, i + 1, time_steps, self.auto_scale, self.extra_steps)
                         .context("could not generate walk")?,
                 );
             }
