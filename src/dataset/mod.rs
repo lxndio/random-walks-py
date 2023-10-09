@@ -185,7 +185,7 @@ impl ToString for Datapoint {
 }
 
 /// A dataset storing a set of 2d-points with associated metadata.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Dataset {
     data: Vec<Datapoint>,
     coordinate_type: CoordinateType,
@@ -527,6 +527,39 @@ impl Dataset {
                 .map(|p| (p.x + from.x(), p.y + from.y()).into())
                 .collect())
         }
+    }
+
+    pub fn rw_between_intermediate(
+        &self,
+        dp: &DynamicProgram,
+        walker: &Box<dyn Walker>,
+        from: usize,
+        to: usize,
+        time_steps: usize,
+        auto_scale: bool,
+        intermediate_points_qty: u64,
+    ) -> anyhow::Result<Walk> {
+        let mut walk = Vec::new();
+        let mut dataset = Dataset::new(CoordinateType::XY);
+
+        let intermediate_points =
+            self.rw_between(dp, walker, from, to, intermediate_points_qty as usize, true)?;
+        let mut intermediate = intermediate_points
+            .iter()
+            .map(|x| Datapoint {
+                point: Point::XY(*x),
+                metadata: HashMap::new(),
+            })
+            .collect();
+
+        dataset.data.append(&mut intermediate);
+
+        for i in 0..intermediate_points.len() - 1 {
+            let mut w = dataset.rw_between(dp, walker, i, i + 1, time_steps, auto_scale)?;
+            walk.append(&mut w.0);
+        }
+
+        Ok(Walk(walk))
     }
 
     pub fn direct_between(&self, from: usize, to: usize) -> anyhow::Result<Walk> {
