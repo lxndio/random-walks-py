@@ -956,8 +956,9 @@ impl Dataset {
         let mut scale = 0.0;
         let dist = (translated_to.x.abs() + translated_to.y.abs()) as u64;
 
-        if auto_scale && dist > time_steps as u64 {
-            scale = (dist as f64 + extra_steps as f64) / (time_steps - 1) as f64;
+        if auto_scale && dist as usize > time_steps - extra_steps {
+            // scale = (dist as f64 + extra_steps as f64) / (time_steps - 1) as f64;
+            scale = dist as f64 / (time_steps - 1 - extra_steps) as f64;
             translated_to = xy!((translated_to.x as f64 / scale) as i64, (translated_to.y as f64 / scale) as i64);
         }
 
@@ -979,7 +980,7 @@ impl Dataset {
             .context("error while generating random walk path")?;
 
         // Translate all coordinates in walk back to original coordinates
-        if auto_scale && dist > time_steps as u64 {
+        if auto_scale && dist as usize > time_steps - extra_steps {
             Ok(walk
                 .iter()
                 .map(|p| (
