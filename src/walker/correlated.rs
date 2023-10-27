@@ -43,7 +43,7 @@ impl Walker for CorrelatedWalker {
             _ => (),
         }
 
-        let last_direction = direction;
+        let mut last_direction = direction;
 
         for t in (1..time_steps - 1).rev() {
             path.push((x as i64, y as i64).into());
@@ -70,6 +70,8 @@ impl Walker for CorrelatedWalker {
                 Err(WeightedError::AllWeightsZero) => return Err(WalkerError::InconsistentPath),
                 _ => return Err(WalkerError::RandomDistributionError),
             };
+
+            last_direction = direction;
 
             match direction {
                 1 => x -= 1,
