@@ -217,10 +217,7 @@ pub struct Datapoint {
 impl Datapoint {
     #[new]
     pub fn new(point: Point, metadata: HashMap<String, String>) -> Self {
-        Self {
-            point,
-            metadata,
-        }
+        Self { point, metadata }
     }
 
     pub fn __repr__(slf: &PyCell<Self>) -> PyResult<String> {
@@ -550,8 +547,15 @@ impl Dataset {
             WalkerType::Levy(walker) => Box::new(walker),
         };
 
-        slf.borrow()
-            .rw_between(&dp, walker, from_idx, to_idx, time_steps, auto_scale, extra_steps)
+        slf.borrow().rw_between(
+            &dp,
+            walker,
+            from_idx,
+            to_idx,
+            time_steps,
+            auto_scale,
+            extra_steps,
+        )
     }
 
     #[pyo3(name = "generate_walks")]
@@ -959,7 +963,10 @@ impl Dataset {
         if auto_scale && dist as usize > time_steps - extra_steps {
             // scale = (dist as f64 + extra_steps as f64) / (time_steps - 1) as f64;
             scale = dist as f64 / (time_steps - 1 - extra_steps) as f64;
-            translated_to = xy!((translated_to.x as f64 / scale) as i64, (translated_to.y as f64 / scale) as i64);
+            translated_to = xy!(
+                (translated_to.x as f64 / scale) as i64,
+                (translated_to.y as f64 / scale) as i64
+            );
         }
 
         // Check if `to` is still at a position where the walk can be computed with the given
@@ -983,10 +990,13 @@ impl Dataset {
         if auto_scale && dist as usize > time_steps - extra_steps {
             Ok(walk
                 .iter()
-                .map(|p| (
-                    (p.x as f64 * scale) as i64 + from.x(),
-                    (p.y as f64 * scale) as i64 + from.y(),
-                ).into())
+                .map(|p| {
+                    (
+                        (p.x as f64 * scale) as i64 + from.x(),
+                        (p.y as f64 * scale) as i64 + from.y(),
+                    )
+                        .into()
+                })
                 .collect())
         } else {
             Ok(walk
@@ -999,16 +1009,16 @@ impl Dataset {
 
 #[cfg(test)]
 mod tests {
-    use crate::xy;
     use crate::dataset::loader::CoordinateType;
     use crate::dataset::point::{Point, XYPoint};
     use crate::dataset::{Datapoint, Dataset, DatasetFilter};
-    use std::collections::HashMap;
     use crate::dp::builder::DynamicProgramBuilder;
     use crate::dp::DynamicPrograms;
-    use crate::kernel::Kernel;
     use crate::kernel::simple_rw::SimpleRwGenerator;
+    use crate::kernel::Kernel;
     use crate::walker::standard::StandardWalker;
+    use crate::xy;
+    use std::collections::HashMap;
 
     #[test]
     fn test_dataset_keep() {
@@ -1361,7 +1371,15 @@ impl<'a> DatasetWalksBuilder<'a> {
             for _ in 0..self.count {
                 walks.push(
                     dataset
-                        .rw_between(dp, walker, i, i + 1, time_steps, self.auto_scale, self.extra_steps)
+                        .rw_between(
+                            dp,
+                            walker,
+                            i,
+                            i + 1,
+                            time_steps,
+                            self.auto_scale,
+                            self.extra_steps,
+                        )
                         .context("could not generate walk")?,
                 );
             }
