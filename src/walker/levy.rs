@@ -30,26 +30,22 @@ impl Walker for LevyWalker {
             return Err(WalkerError::NoPathExists);
         }
 
-        let mut t = time_steps;
-
-        while t >= 1 {
+        for t in (1..time_steps).rev() {
             path.push((x as i64, y as i64).into());
 
             // Check if jump happens here
-            let distance = if thread_rng().gen_range(0f64..1f64) <= self.jump_probability
-                && t >= self.jump_distance
-            {
+            let distance = if thread_rng().gen_range(0f64..1f64) <= self.jump_probability {
                 self.jump_distance
             } else {
                 1
             };
 
             let prev_probs = [
-                dp.at(x, y, t - distance),                     // Stay
-                dp.at(x - distance as isize, y, t - distance), // West
-                dp.at(x, y - distance as isize, t - distance), // North
-                dp.at(x + distance as isize, y, t - distance), // East
-                dp.at(x, y + distance as isize, t - distance), // South
+                dp.at(x, y, t - 1),                     // Stay
+                dp.at(x - distance as isize, y, t - 1), // West
+                dp.at(x, y - distance as isize, t - 1), // North
+                dp.at(x + distance as isize, y, t - 1), // East
+                dp.at(x, y + distance as isize, t - 1), // South
             ];
 
             let direction = match WeightedIndex::new(prev_probs) {
@@ -66,8 +62,6 @@ impl Walker for LevyWalker {
                 4 => y += distance as isize, // South
                 _ => unreachable!("Other directions should not be chosen from the distribution"),
             }
-
-            t -= distance;
         }
 
         path.reverse();
