@@ -4,7 +4,7 @@ use crate::kernel::generator::KernelGenerator;
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
-use std::ops::{Index, IndexMut, Mul, MulAssign};
+use std::ops::{Div, DivAssign, Index, IndexMut, Mul, MulAssign};
 use strum::EnumIter;
 
 pub mod biased_correlated_rw;
@@ -57,6 +57,17 @@ impl Kernel {
         Ok(kernels)
     }
 
+    pub fn try_from_value(size: usize, value: f64) -> anyhow::Result<Self> {
+        if size % 2 == 0 {
+            bail!("size must be odd")
+        }
+
+        Ok(Self {
+            probabilities: vec![vec![value; size]; size],
+            name: (String::new(), String::new()),
+        })
+    }
+
     pub fn initialize(&mut self, size: usize) -> anyhow::Result<()> {
         if size % 2 == 1 {
             self.probabilities = vec![vec![0.0; size]; size];
@@ -69,6 +80,18 @@ impl Kernel {
 
     pub fn size(&self) -> usize {
         self.probabilities.len()
+    }
+
+    pub fn sum(&self) -> f64 {
+        let mut sum = 0.0;
+
+        for x in 0..self.size() {
+            for y in 0..self.size() {
+                sum += self.probabilities[x][y];
+            }
+        }
+
+        sum
     }
 
     pub fn set(&mut self, x: isize, y: isize, val: f64) {
@@ -172,6 +195,40 @@ impl MulAssign for Kernel {
             }
         } else {
             panic!("both kernels must have the same size for multiplication");
+        }
+    }
+}
+
+impl Div for Kernel {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        if self.size() == rhs.size() {
+            let mut new_kernel = self.clone();
+
+            for x in 0..self.size() {
+                for y in 0..self.size() {
+                    new_kernel.probabilities[x][y] /= rhs.probabilities[x][y];
+                }
+            }
+
+            new_kernel
+        } else {
+            panic!("both kernels must have the same size for division");
+        }
+    }
+}
+
+impl DivAssign for Kernel {
+    fn div_assign(&mut self, rhs: Self) {
+        if self.size() == rhs.size() {
+            for x in 0..self.size() {
+                for y in 0..self.size() {
+                    self.probabilities[x][y] /= rhs.probabilities[x][y];
+                }
+            }
+        } else {
+            panic!("both kernels must have the same size for division");
         }
     }
 }

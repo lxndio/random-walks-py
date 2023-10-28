@@ -43,6 +43,7 @@ pub struct DatasetWalksBuilder<'a> {
     time_steps: TimeStepsBy,
     time_format: Option<&'static str>,
     auto_scale: bool,
+    extra_steps: usize,
 }
 
 impl<'a> Default for DatasetWalksBuilder<'a> {
@@ -57,6 +58,7 @@ impl<'a> Default for DatasetWalksBuilder<'a> {
             time_steps: TimeStepsBy::None,
             time_format: None,
             auto_scale: false,
+            extra_steps: 0,
         }
     }
 }
@@ -155,6 +157,12 @@ impl<'a> DatasetWalksBuilder<'a> {
         self
     }
 
+    pub fn extra_steps(mut self, extra_steps: usize) -> Self {
+        self.extra_steps = extra_steps;
+
+        self
+    }
+
     pub fn build(self) -> anyhow::Result<Vec<Walk>> {
         let Some(dataset) = self.dataset else {
             return Err(DatasetWalksBuilderError::NoDatasetSet)?;
@@ -235,7 +243,15 @@ impl<'a> DatasetWalksBuilder<'a> {
             for _ in 0..self.count {
                 walks.push(
                     dataset
-                        .rw_between(dp, walker, i, i + 1, time_steps, self.auto_scale)
+                        .rw_between(
+                            dp,
+                            walker,
+                            i,
+                            i + 1,
+                            time_steps,
+                            self.auto_scale,
+                            self.extra_steps,
+                        )
                         .context("could not generate walk")?,
                 );
             }

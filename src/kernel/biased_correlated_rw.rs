@@ -39,6 +39,8 @@ impl KernelGenerator for BiasedCorrelatedRwGenerator {
 
             for kernel in correlated.iter_mut() {
                 *kernel *= biased.clone();
+                // Normalize such that all probabilities still sum to 1
+                *kernel /= Kernel::try_from_value(kernel.size(), kernel.sum()).unwrap();
             }
 
             *kernels = correlated;

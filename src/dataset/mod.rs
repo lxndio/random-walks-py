@@ -466,6 +466,7 @@ impl Dataset {
         to: usize,
         time_steps: usize,
         auto_scale: bool,
+        extra_steps: usize,
     ) -> anyhow::Result<Walk> {
         let from = &self.get(from).context("from index out of bounds.")?.point;
         let to = &self.get(to).context("to index out of bounds.")?.point;
@@ -484,8 +485,9 @@ impl Dataset {
         let mut scale = 0.0;
         let dist = (translated_to.x.abs() + translated_to.y.abs()) as u64;
 
-        if auto_scale && dist > time_steps as u64 {
-            scale = dist as f64 / (time_steps - 1) as f64;
+        if auto_scale && dist as usize > time_steps - extra_steps {
+            // scale = (dist as f64 + extra_steps as f64) / (time_steps - 1) as f64;
+            scale = dist as f64 / (time_steps - 1 - extra_steps) as f64;
             translated_to = xy!(
                 (translated_to.x as f64 / scale) as i64,
                 (translated_to.y as f64 / scale) as i64
@@ -510,7 +512,7 @@ impl Dataset {
             .context("error while generating random walk path")?;
 
         // Translate all coordinates in walk back to original coordinates
-        if auto_scale && dist > time_steps as u64 {
+        if auto_scale && dist as usize > time_steps - extra_steps {
             Ok(walk
                 .iter()
                 .map(|p| {
@@ -542,8 +544,15 @@ impl Dataset {
         let mut walk = Vec::new();
         let mut dataset = Dataset::new(CoordinateType::XY);
 
-        let intermediate_points =
-            self.rw_between(dp, walker, from, to, intermediate_points_qty as usize, true)?;
+        let intermediate_points = self.rw_between(
+            dp,
+            walker,
+            from,
+            to,
+            intermediate_points_qty as usize,
+            true,
+            100,
+        )?;
         let mut intermediate = intermediate_points
             .iter()
             .map(|x| Datapoint {
@@ -555,7 +564,7 @@ impl Dataset {
         dataset.data.append(&mut intermediate);
 
         for i in 0..intermediate_points.len() - 1 {
-            let mut w = dataset.rw_between(dp, walker, i, i + 1, time_steps, auto_scale)?;
+            let mut w = dataset.rw_between(dp, walker, i, i + 1, time_steps, auto_scale, 0)?;
             walk.append(&mut w.0);
         }
 
