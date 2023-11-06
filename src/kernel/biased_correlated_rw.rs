@@ -1,6 +1,6 @@
 use crate::kernel::biased_rw::BiasedRwGenerator;
 use crate::kernel::correlated_rw::CorrelatedRwGenerator;
-use crate::kernel::generator::KernelGenerator;
+use crate::kernel::generator::{KernelGenerator, KernelGeneratorError};
 use crate::kernel::{Direction, Kernel};
 
 pub struct BiasedCorrelatedRwGenerator {
@@ -10,9 +10,9 @@ pub struct BiasedCorrelatedRwGenerator {
 }
 
 impl KernelGenerator for BiasedCorrelatedRwGenerator {
-    fn prepare(&self, kernels: &mut Vec<Kernel>) -> Result<(), String> {
+    fn prepare(&self, kernels: &mut Vec<Kernel>) -> Result<(), KernelGeneratorError> {
         if kernels.len() != self.generates_qty() {
-            Err("Not enough kernels to prepare.".into())
+            Err(KernelGeneratorError::NotEnoughKernels)
         } else {
             for kernel in kernels.iter_mut() {
                 kernel.initialize(3).unwrap();
@@ -22,9 +22,9 @@ impl KernelGenerator for BiasedCorrelatedRwGenerator {
         }
     }
 
-    fn generate(&self, kernels: &mut Vec<Kernel>) -> Result<(), String> {
+    fn generate(&self, kernels: &mut Vec<Kernel>) -> Result<(), KernelGeneratorError> {
         if kernels.len() != self.generates_qty() {
-            Err("Not enough kernels for generation.".into())
+            Err(KernelGeneratorError::NotEnoughKernels)
         } else {
             let mut correlated = Kernel::multiple_from_generator(CorrelatedRwGenerator {
                 persistence: self.persistence,

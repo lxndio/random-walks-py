@@ -1,6 +1,6 @@
 //! Provides functionality for creating kernels, as well as pre-defined kernel generators.
 
-use crate::kernel::generator::KernelGenerator;
+use crate::kernel::generator::{KernelGenerator, KernelGeneratorError};
 use anyhow::bail;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
@@ -31,7 +31,7 @@ impl Kernel {
         })
     }
 
-    pub fn from_generator(generator: impl KernelGenerator) -> Result<Kernel, String> {
+    pub fn from_generator(generator: impl KernelGenerator) -> Result<Kernel, KernelGeneratorError> {
         let kernel = Kernel {
             probabilities: Vec::new(),
             name: generator.name(),
@@ -44,7 +44,9 @@ impl Kernel {
         Ok(kernels[0].clone())
     }
 
-    pub fn multiple_from_generator(generator: impl KernelGenerator) -> Result<Vec<Kernel>, String> {
+    pub fn multiple_from_generator(
+        generator: impl KernelGenerator,
+    ) -> Result<Vec<Kernel>, KernelGeneratorError> {
         let kernel = Kernel {
             probabilities: Vec::new(),
             name: generator.name(),

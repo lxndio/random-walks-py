@@ -1,4 +1,4 @@
-use crate::kernel::generator::KernelGenerator;
+use crate::kernel::generator::{KernelGenerator, KernelGeneratorError};
 use crate::kernel::{Direction, Kernel};
 use strum::IntoEnumIterator;
 
@@ -7,9 +7,9 @@ pub struct CorrelatedRwGenerator {
 }
 
 impl KernelGenerator for CorrelatedRwGenerator {
-    fn prepare(&self, kernels: &mut Vec<Kernel>) -> Result<(), String> {
+    fn prepare(&self, kernels: &mut Vec<Kernel>) -> Result<(), KernelGeneratorError> {
         if kernels.len() != self.generates_qty() {
-            Err("Not enough kernels to prepare.".into())
+            Err(KernelGeneratorError::NotEnoughKernels)
         } else {
             for kernel in kernels.iter_mut() {
                 kernel.initialize(3).unwrap();
@@ -19,9 +19,9 @@ impl KernelGenerator for CorrelatedRwGenerator {
         }
     }
 
-    fn generate(&self, kernels: &mut Vec<Kernel>) -> Result<(), String> {
+    fn generate(&self, kernels: &mut Vec<Kernel>) -> Result<(), KernelGeneratorError> {
         if kernels.len() != self.generates_qty() {
-            Err("Not enough kernels for generation.".into())
+            Err(KernelGeneratorError::NotEnoughKernels)
         } else {
             // Generate biased kernel to north which can later be rotated to four directions
             let (direction_x, direction_y) = Direction::North.into();
