@@ -238,7 +238,7 @@ impl DivAssign for Kernel {
 /// A macro that allows quick creation of a custom kernel.
 #[macro_export]
 macro_rules! kernel {
-    ($($x:expr),+) => {{
+    ($($x:expr),+ $(,)?) => {{
         let probs = vec![$($x),*];
         let size = (probs.len() as f64).sqrt() as usize;
 
@@ -350,7 +350,7 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         assert!(kernel.rotate(87).is_err());
@@ -361,13 +361,13 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let mut correct_rotation = kernel![
             7.0, 4.0, 1.0,
             8.0, 5.0, 2.0,
-            9.0, 6.0, 3.0
+            9.0, 6.0, 3.0,
         ];
 
         assert!(kernel.rotate(90).is_ok());
@@ -379,13 +379,13 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let mut correct_rotation = kernel![
             9.0, 8.0, 7.0,
             6.0, 5.0, 4.0,
-            3.0, 2.0, 1.0
+            3.0, 2.0, 1.0,
         ];
 
         assert!(kernel.rotate(180).is_ok());
@@ -397,13 +397,13 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let mut correct_rotation = kernel![
             3.0, 6.0, 9.0,
             2.0, 5.0, 8.0,
-            1.0, 4.0, 7.0
+            1.0, 4.0, 7.0,
         ];
 
         assert!(kernel.rotate(270).is_ok());
@@ -415,7 +415,7 @@ mod tests {
         let kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let kernel_correct = Kernel {
