@@ -40,13 +40,17 @@ impl Walker for LevyWalker {
                 1
             };
 
-            let prev_probs = [
-                dp.at(x, y, t - 1),                     // Stay
+            let mut prev_probs = vec![
                 dp.at(x - distance as isize, y, t - 1), // West
                 dp.at(x, y - distance as isize, t - 1), // North
                 dp.at(x + distance as isize, y, t - 1), // East
                 dp.at(x, y + distance as isize, t - 1), // South
             ];
+
+            // Only allow staying if no jump occurs
+            if distance == 1 {
+                prev_probs.push(dp.at(x, y, t - 1)); // Stay
+            }
 
             let direction = match WeightedIndex::new(prev_probs) {
                 Ok(dist) => dist.sample(&mut rng),
@@ -55,11 +59,11 @@ impl Walker for LevyWalker {
             };
 
             match direction {
-                0 => (),                     // Stay
-                1 => x -= distance as isize, // West
-                2 => y -= distance as isize, // North
-                3 => x += distance as isize, // East
-                4 => y += distance as isize, // South
+                0 => x -= distance as isize, // West
+                1 => y -= distance as isize, // North
+                2 => x += distance as isize, // East
+                3 => y += distance as isize, // South
+                4 => (),                     // Stay
                 _ => unreachable!("Other directions should not be chosen from the distribution"),
             }
         }
