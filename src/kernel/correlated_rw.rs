@@ -1,3 +1,4 @@
+use crate::kernel::biased_rw::BiasedRwGenerator;
 use crate::kernel::generator::{KernelGenerator, KernelGeneratorError};
 use crate::kernel::{Direction, Kernel};
 use strum::IntoEnumIterator;
@@ -23,39 +24,12 @@ impl KernelGenerator for CorrelatedRwGenerator {
         if kernels.len() != self.generates_qty() {
             Err(KernelGeneratorError::NotEnoughKernels)
         } else {
-            // Generate biased kernel to north which can later be rotated to four directions
-            let (direction_x, direction_y) = Direction::North.into();
-            let other_prob = (1.0 - self.persistence) / 4.0;
-
-            kernels[0].set(direction_x, direction_y, self.persistence);
-
-            for direction in Direction::iter() {
-                if direction != Direction::North {
-                    let (direction_x, direction_y) = direction.into();
-
-                    kernels[0].set(direction_x, direction_y, other_prob);
-                }
-            }
-
-            kernels[1] = kernels[0].clone();
-            kernels[2] = kernels[0].clone();
-            kernels[3] = kernels[0].clone();
-
-            // Unwraps are safe here because rotation values are correct
-            kernels[1].rotate(90).unwrap();
-            kernels[2].rotate(180).unwrap();
-            kernels[3].rotate(270).unwrap();
-
-            // Generate kernel for staying manually
-            let (direction_x, direction_y) = Direction::Stay.into();
-            kernels[4].set(direction_x, direction_y, self.persistence);
-
-            for direction in Direction::iter() {
-                if direction != Direction::Stay {
-                    let (direction_x, direction_y) = direction.into();
-
-                    kernels[4].set(direction_x, direction_y, other_prob);
-                }
+            for (i, direction) in Direction::iter().enumerate() {
+                kernels[i] = Kernel::from_generator(BiasedRwGenerator {
+                    probability: self.persistence,
+                    direction,
+                })
+                .unwrap();
             }
 
             Ok(())
