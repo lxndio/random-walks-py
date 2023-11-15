@@ -8,7 +8,7 @@ use randomwalks_lib::walker::standard::StandardWalker;
 use randomwalks_lib::walker::Walker;
 
 pub fn benchmark_dp_simple(c: &mut Criterion) {
-    let time_limits = (100..=600).step_by(50);
+    let time_limits = (100..=500).step_by(50);
     let mut group = c.benchmark_group("DP compute simple");
 
     for time_limit in time_limits {
@@ -30,7 +30,7 @@ pub fn benchmark_dp_simple(c: &mut Criterion) {
 }
 
 pub fn benchmark_dp_correlated(c: &mut Criterion) {
-    let time_limits = (100..=600).step_by(50);
+    let time_limits = (100..=500).step_by(50);
     let mut group = c.benchmark_group("DP compute correlated");
 
     for time_limit in time_limits {
@@ -66,7 +66,7 @@ pub fn benchmark_generating_walks(c: &mut Criterion) {
 
     dp.compute();
 
-    let time_steps_list = (100..=600).step_by(50);
+    let time_steps_list = (100..=500).step_by(50);
     let mut group = c.benchmark_group("DP generate walks");
 
     for time_steps in time_steps_list {
@@ -82,7 +82,7 @@ pub fn benchmark_generating_walks(c: &mut Criterion) {
             },
         );
 
-        group.sample_size(100).bench_with_input(
+        group.sample_size(10).bench_with_input(
             BenchmarkId::new("10 walks", time_steps),
             &time_steps,
             |b, &time_steps| {

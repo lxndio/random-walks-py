@@ -185,7 +185,7 @@ impl DynamicProgramBuilder {
 
     /// Sets the [`Kernel`s](crate::kernel::Kernel) for the dynamic program. Use this in combination
     /// with a [`MultiDynamicProgram`].
-    pub fn kernels(mut self, kernels: Vec<Kernel>) -> Self {
+        pub fn kernels(mut self, kernels: Vec<Kernel>) -> Self {
         self.kernels = Some(kernels);
 
         self
