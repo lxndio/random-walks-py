@@ -167,6 +167,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
     fn compute_parallel(&mut self) {
         let (limit_neg, limit_pos) = self.limits();
         let kernel = Arc::new(RwLock::new(self.kernel.clone()));
+        let field_probabilities = Arc::new(RwLock::new(self.field_probabilities.clone()));
 
         // Define chunks
         let ranges = (limit_neg..0, 0..limit_pos + 1);
@@ -200,6 +201,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
 
             for (x_range, y_range) in chunks.clone() {
                 let kernel = kernel.clone();
+                let field_probabilities = field_probabilities.clone();
                 let table_old = table_old.clone();
 
                 handles.push(thread::spawn(move || {
@@ -212,19 +214,14 @@ impl DynamicPrograms for SimpleDynamicProgram {
                                 &table_old.read().unwrap(),
                                 &mut table_new,
                                 &kernel.read().unwrap(),
+                                &field_probabilities.read().unwrap(),
                                 (limit_neg, limit_pos),
-                                x, y, t
+                                x,
+                                y,
+                                t,
                             );
                         }
                     }
-
-                    // let mut value_sum = 0;
-                    // for value in table_new.iter().flatten() {
-                    //     if value > &0.0 {
-                    //         value_sum += 1;
-                    //     }
-                    // }
-                    // println!("t: {}, sum: {}", t, value_sum);
 
                     (table_new, x_range, y_range)
                 }));
@@ -233,12 +230,15 @@ impl DynamicPrograms for SimpleDynamicProgram {
             for handle in handles.into_iter() {
                 let (table_new, x_range, y_range) = handle.join().unwrap();
                 let (x_range, y_range) = (
-                    (self.time_limit as isize + x_range.start) as usize..(self.time_limit as isize + x_range.end) as usize,
-                    (self.time_limit as isize + y_range.start) as usize..(self.time_limit as isize + y_range.end) as usize,
+                    (self.time_limit as isize + x_range.start) as usize
+                        ..(self.time_limit as isize + x_range.end) as usize,
+                    (self.time_limit as isize + y_range.start) as usize
+                        ..(self.time_limit as isize + y_range.end) as usize,
                 );
 
                 for x in x_range {
-                    self.table[t][x][y_range.clone()].copy_from_slice(&table_new[x][y_range.clone()]);
+                    self.table[t][x][y_range.clone()]
+                        .copy_from_slice(&table_new[x][y_range.clone()]);
                 }
             }
 
@@ -367,7 +367,16 @@ impl DynamicPrograms for SimpleDynamicProgram {
     }
 }
 
-fn apply_kernel(table_old: &Vec<Vec<f64>>, table_new: &mut Vec<Vec<f64>>, kernel: &Kernel, limits: (isize, isize), x: isize, y: isize, t: usize) {
+fn apply_kernel(
+    table_old: &Vec<Vec<f64>>,
+    table_new: &mut Vec<Vec<f64>>,
+    kernel: &Kernel,
+    field_probabilities: &Vec<Vec<f64>>,
+    limits: (isize, isize),
+    x: isize,
+    y: isize,
+    t: usize,
+) {
     let ks = (kernel.size() / 2) as isize;
     let (limit_neg, limit_pos) = limits;
     let mut sum = 0.0;
@@ -386,11 +395,13 @@ fn apply_kernel(table_old: &Vec<Vec<f64>>, table_new: &mut Vec<Vec<f64>>, kernel
             let kernel_x = x - i;
             let kernel_y = y - j;
 
-            sum += table_old[(limit_pos + i) as usize][(limit_pos + j) as usize] * kernel.at(kernel_x, kernel_y);
+            sum += table_old[(limit_pos + i) as usize][(limit_pos + j) as usize]
+                * kernel.at(kernel_x, kernel_y);
         }
     }
 
-    table_new[(limit_pos + x) as usize][(limit_pos + y) as usize] = sum;
+    table_new[(limit_pos + x) as usize][(limit_pos + y) as usize] =
+        sum * field_probabilities[(limit_pos + x) as usize][(limit_pos + y) as usize];
 }
 
 #[cfg(not(tarpaulin_include))]

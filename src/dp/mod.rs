@@ -124,7 +124,9 @@ impl DynamicPrograms for DynamicProgram {
         self.unwrap_mut().compute()
     }
 
-    fn compute_parallel(&mut self) { self.unwrap_mut().compute_parallel() }
+    fn compute_parallel(&mut self) {
+        self.unwrap_mut().compute_parallel()
+    }
 
     fn field_probabilities(&self) -> Vec<Vec<f64>> {
         self.unwrap().field_probabilities()
