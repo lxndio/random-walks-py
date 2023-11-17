@@ -162,6 +162,10 @@ impl DynamicPrograms for MultiDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
+    fn compute_parallel(&mut self) {
+        todo!()
+    }
+
     fn field_probabilities(&self) -> Vec<Vec<f64>> {
         self.field_probabilities.clone()
     }

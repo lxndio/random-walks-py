@@ -80,6 +80,8 @@ pub trait DynamicPrograms {
 
     fn compute(&mut self);
 
+    fn compute_parallel(&mut self);
+
     fn field_probabilities(&self) -> Vec<Vec<f64>>;
 
     #[cfg(feature = "plotting")]
@@ -121,6 +123,8 @@ impl DynamicPrograms for DynamicProgram {
     fn compute(&mut self) {
         self.unwrap_mut().compute()
     }
+
+    fn compute_parallel(&mut self) { self.unwrap_mut().compute_parallel() }
 
     fn field_probabilities(&self) -> Vec<Vec<f64>> {
         self.unwrap().field_probabilities()

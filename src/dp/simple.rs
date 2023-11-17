@@ -7,6 +7,9 @@ use num::Zero;
 #[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use std::fmt::Debug;
+use std::ops::DerefMut;
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
 use std::time::Instant;
 #[cfg(feature = "saving")]
 use {
@@ -17,7 +20,7 @@ use {
 };
 
 pub struct SimpleDynamicProgram {
-    pub(crate) table: Vec<Vec<Vec<f64>>>,
+    pub table: Vec<Vec<Vec<f64>>>, // TODO make pub(crate) again
     pub(crate) time_limit: usize,
     pub(crate) kernel: Kernel,
     pub(crate) field_probabilities: Vec<Vec<f64>>,
@@ -161,6 +164,104 @@ impl DynamicPrograms for SimpleDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
+    fn compute_parallel(&mut self) {
+        let (limit_neg, limit_pos) = self.limits();
+        let kernel = Arc::new(RwLock::new(self.kernel.clone()));
+
+        // Define chunks
+        let ranges = (limit_neg..0, 0..limit_pos + 1);
+        let chunks = vec![
+            (ranges.0.clone(), ranges.0.clone()),
+            (ranges.1.clone(), ranges.0.clone()),
+            (ranges.0.clone(), ranges.1.clone()),
+            (ranges.1.clone(), ranges.1.clone()),
+        ];
+
+        // let chunk_size = ((self.time_limit + 1) / 3) as isize;
+        // let mut ranges = Vec::new();
+        // for i in 0..3 - 1 {
+        //     ranges.push((limit_neg + i * chunk_size..limit_neg + (i + 1) * chunk_size));
+        // }
+        // ranges.push(limit_neg + 2 * chunk_size..limit_pos);
+        // let mut chunks = Vec::new();
+        // for x in 0..3 {
+        //     for y in 0..3 {
+        //         chunks.push((ranges[x].clone(), ranges[y].clone()));
+        //     }
+        // }
+
+        self.set(0, 0, 0, 1.0);
+
+        let start = Instant::now();
+
+        for t in 1..=limit_pos as usize {
+            let mut handles = Vec::new();
+            let table_old = Arc::new(RwLock::new(self.table[t - 1].clone()));
+
+            for (x_range, y_range) in chunks.clone() {
+                let kernel = kernel.clone();
+                let table_old = table_old.clone();
+
+                handles.push(thread::spawn(move || {
+                    let size = (2 * limit_pos + 1) as usize;
+                    let mut table_new = vec![vec![0.0; size]; size];
+
+                    for x in x_range.clone() {
+                        for y in y_range.clone() {
+                            apply_kernel(
+                                &table_old.read().unwrap(),
+                                &mut table_new,
+                                &kernel.read().unwrap(),
+                                (limit_neg, limit_pos),
+                                x, y, t
+                            );
+                        }
+                    }
+
+                    // let mut value_sum = 0;
+                    // for value in table_new.iter().flatten() {
+                    //     if value > &0.0 {
+                    //         value_sum += 1;
+                    //     }
+                    // }
+                    // println!("t: {}, sum: {}", t, value_sum);
+
+                    (table_new, x_range, y_range)
+                }));
+            }
+
+            for handle in handles.into_iter() {
+                let (table_new, x_range, y_range) = handle.join().unwrap();
+                let (x_range, y_range) = (
+                    (self.time_limit as isize + x_range.start) as usize..(self.time_limit as isize + x_range.end) as usize,
+                    (self.time_limit as isize + y_range.start) as usize..(self.time_limit as isize + y_range.end) as usize,
+                );
+
+                for x in x_range {
+                    self.table[t][x][y_range.clone()].copy_from_slice(&table_new[x][y_range.clone()]);
+                }
+            }
+
+            // for handle in handles.into_iter() {
+            //     let (table_new, x_range, y_range) = handle.join().unwrap();
+            //     let (x_range, y_range) = (
+            //         (self.time_limit as isize + x_range.start) as usize..(self.time_limit as isize + x_range.end) as usize,
+            //         (self.time_limit as isize + y_range.start) as usize..(self.time_limit as isize + y_range.end) as usize,
+            //     );
+            //
+            //     for x in x_range {
+            //         for y in y_range.clone() {
+            //             self.table[t][x][y] = table_new[x][y];
+            //         }
+            //     }
+            // }
+        }
+
+        let duration = start.elapsed();
+
+        println!("Computation took {:?}", duration);
+    }
+
     #[cfg(not(tarpaulin_include))]
     fn field_probabilities(&self) -> Vec<Vec<f64>> {
         self.field_probabilities.clone()
@@ -264,6 +365,32 @@ impl DynamicPrograms for SimpleDynamicProgram {
 
         Ok(())
     }
+}
+
+fn apply_kernel(table_old: &Vec<Vec<f64>>, table_new: &mut Vec<Vec<f64>>, kernel: &Kernel, limits: (isize, isize), x: isize, y: isize, t: usize) {
+    let ks = (kernel.size() / 2) as isize;
+    let (limit_neg, limit_pos) = limits;
+    let mut sum = 0.0;
+
+    for i in x - ks..=x + ks {
+        if i < limit_neg || i > limit_pos {
+            continue;
+        }
+
+        for j in y - ks..=y + ks {
+            if j < limit_neg || j > limit_pos {
+                continue;
+            }
+
+            // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
+            let kernel_x = x - i;
+            let kernel_y = y - j;
+
+            sum += table_old[(limit_pos + i) as usize][(limit_pos + j) as usize] * kernel.at(kernel_x, kernel_y);
+        }
+    }
+
+    table_new[(limit_pos + x) as usize][(limit_pos + y) as usize] = sum;
 }
 
 #[cfg(not(tarpaulin_include))]
