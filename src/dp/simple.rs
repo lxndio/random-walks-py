@@ -31,6 +31,19 @@ impl SimpleDynamicProgram {
         self.table[t][x][y]
     }
 
+    pub fn at_or(&self, x: isize, y: isize, t: usize, default: f64) -> f64 {
+        let (limit_neg, limit_pos) = self.limits();
+
+        if x >= limit_neg && x <= limit_pos && y >= limit_neg && y <= limit_pos {
+            let x = (self.time_limit as isize + x) as usize;
+            let y = (self.time_limit as isize + y) as usize;
+
+            self.table[t][x][y]
+        } else {
+            default
+        }
+    }
+
     pub fn set(&mut self, x: isize, y: isize, t: usize, val: f64) {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;

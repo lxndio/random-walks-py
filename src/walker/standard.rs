@@ -31,11 +31,11 @@ impl Walker for StandardWalker {
             path.push((x as i64, y as i64).into());
 
             let prev_probs = [
-                dp.at(x, y, t - 1),     // Stay
-                dp.at(x - 1, y, t - 1), // West
-                dp.at(x, y - 1, t - 1), // North
-                dp.at(x + 1, y, t - 1), // East
-                dp.at(x, y + 1, t - 1), // South
+                dp.at_or(x, y, t - 1, 0.0),     // Stay
+                dp.at_or(x - 1, y, t - 1, 0.0), // West
+                dp.at_or(x, y - 1, t - 1, 0.0), // North
+                dp.at_or(x + 1, y, t - 1, 0.0), // East
+                dp.at_or(x, y + 1, t - 1, 0.0), // South
             ];
 
             let direction = match WeightedIndex::new(prev_probs) {
