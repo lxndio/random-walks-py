@@ -84,10 +84,8 @@ impl Walker for MultiStepWalker {
 
             for i in x - max_step_size..=x + max_step_size {
                 for j in y - max_step_size..=y + max_step_size {
-                    if i == x || j == y {
-                        prev_probs.push(dp.at(i, j, t - 1));
-                        movements.push((i - x, j - y));
-                    }
+                    prev_probs.push(dp.at_or(i, j, t - 1, 0.0));
+                    movements.push((i - x, j - y));
                 }
             }
 
