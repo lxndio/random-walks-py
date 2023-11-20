@@ -1,9 +1,14 @@
+use std::ops::Range;
+use std::sync::{Arc, RwLock};
+use std::sync::mpsc::channel;
 use crate::dp::builder::DynamicProgramBuilder;
 use crate::dp::{DynamicProgram, DynamicPrograms};
 use crate::kernel;
 use crate::kernel::Kernel;
 use anyhow::{bail, Context};
 use std::time::Instant;
+use workerpool::Pool;
+use workerpool::thunk::ThunkWorker;
 #[cfg(feature = "saving")]
 use {
     std::fs::File,
@@ -39,9 +44,10 @@ impl MultiDynamicProgram {
     }
 
     pub fn apply_kernels_at(&mut self, x: isize, y: isize, t: usize) {
+        let (limit_neg, limit_pos) = self.limits();
+
         for (variant, kernel) in self.kernels.clone().iter().enumerate() {
             let ks = (kernel.size() / 2) as isize;
-            let (limit_neg, limit_pos) = self.limits();
             let mut sum = 0.0;
 
             for i in x - ks..=x + ks {

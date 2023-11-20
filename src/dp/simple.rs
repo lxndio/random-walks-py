@@ -365,13 +365,12 @@ fn apply_kernel(
     table_old: &Vec<Vec<f64>>,
     kernel: &Kernel,
     field_probabilities: &Vec<Vec<f64>>,
-    limits: (isize, isize),
+    (limit_neg, limit_pos): (isize, isize),
     x: isize,
     y: isize,
     t: usize,
 ) -> f64 {
     let ks = (kernel.size() / 2) as isize;
-    let (limit_neg, limit_pos) = limits;
     let mut sum = 0.0;
 
     for i in x - ks..=x + ks {
