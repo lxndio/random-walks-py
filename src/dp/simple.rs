@@ -175,13 +175,17 @@ impl DynamicPrograms for SimpleDynamicProgram {
         let (tx, rx) = channel();
 
         // Define chunks
+
         let chunk_size = ((self.time_limit + 1) / 3) as isize;
         let mut ranges = Vec::new();
+
         for i in 0..3 - 1 {
             ranges.push((limit_neg + i * chunk_size..limit_neg + (i + 1) * chunk_size));
         }
+
         ranges.push(limit_neg + 2 * chunk_size..limit_pos + 1);
         let mut chunks = Vec::new();
+
         for x in 0..3 {
             for y in 0..3 {
                 chunks.push((ranges[x].clone(), ranges[y].clone()));
@@ -245,98 +249,12 @@ impl DynamicPrograms for SimpleDynamicProgram {
                     j = 0;
                 }
             }
-
-            // println!("[loop] queued: {}, active: {}", pool.queued_count(), pool.active_count());
         }
 
         let duration = start.elapsed();
 
         println!("Computation took {:?}", duration);
     }
-
-    // fn compute_parallel(&mut self) {
-    //     let (limit_neg, limit_pos) = self.limits();
-    //     let kernel = Arc::new(RwLock::new(self.kernel.clone()));
-    //     let field_probabilities = Arc::new(RwLock::new(self.field_probabilities.clone()));
-    //
-    //     // Define chunks
-    //     let ranges = (limit_neg..0, 0..limit_pos + 1);
-    //     let chunks = vec![
-    //         (ranges.0.clone(), ranges.0.clone()),
-    //         (ranges.1.clone(), ranges.0.clone()),
-    //         (ranges.0.clone(), ranges.1.clone()),
-    //         (ranges.1.clone(), ranges.1.clone()),
-    //     ];
-    //
-    //     // let chunk_size = ((self.time_limit + 1) / 3) as isize;
-    //     // let mut ranges = Vec::new();
-    //     // for i in 0..3 - 1 {
-    //     //     ranges.push((limit_neg + i * chunk_size..limit_neg + (i + 1) * chunk_size));
-    //     // }
-    //     // ranges.push(limit_neg + 2 * chunk_size..limit_pos);
-    //     // let mut chunks = Vec::new();
-    //     // for x in 0..3 {
-    //     //     for y in 0..3 {
-    //     //         chunks.push((ranges[x].clone(), ranges[y].clone()));
-    //     //     }
-    //     // }
-    //
-    //     self.set(0, 0, 0, 1.0);
-    //
-    //     let start = Instant::now();
-    //
-    //     for t in 1..=limit_pos as usize {
-    //         let mut handles = Vec::new();
-    //         let table_old = Arc::new(RwLock::new(self.table[t - 1].clone()));
-    //
-    //         for (x_range, y_range) in chunks.clone() {
-    //             let kernel = kernel.clone();
-    //             let field_probabilities = field_probabilities.clone();
-    //             let table_old = table_old.clone();
-    //
-    //             handles.push(thread::spawn(move || {
-    //                 let size = (2 * limit_pos + 1) as usize;
-    //                 let mut table_new = vec![vec![0.0; size]; size];
-    //
-    //                 for x in x_range.clone() {
-    //                     for y in y_range.clone() {
-    //                         apply_kernel(
-    //                             &table_old.read().unwrap(),
-    //                             &mut table_new,
-    //                             &kernel.read().unwrap(),
-    //                             &field_probabilities.read().unwrap(),
-    //                             (limit_neg, limit_pos),
-    //                             x,
-    //                             y,
-    //                             t,
-    //                         );
-    //                     }
-    //                 }
-    //
-    //                 (table_new, x_range, y_range)
-    //             }));
-    //         }
-    //
-    //         for handle in handles.into_iter() {
-    //             let (table_new, x_range, y_range) = handle.join().unwrap();
-    //             let (x_range, y_range) = (
-    //                 (self.time_limit as isize + x_range.start) as usize
-    //                     ..(self.time_limit as isize + x_range.end) as usize,
-    //                 (self.time_limit as isize + y_range.start) as usize
-    //                     ..(self.time_limit as isize + y_range.end) as usize,
-    //             );
-    //
-    //             for x in x_range {
-    //                 self.table[t][x][y_range.clone()]
-    //                     .copy_from_slice(&table_new[x][y_range.clone()]);
-    //             }
-    //         }
-    //     }
-    //
-    //     let duration = start.elapsed();
-    //
-    //     println!("Computation took {:?}", duration);
-    // }
 
     #[cfg(not(tarpaulin_include))]
     fn field_probabilities(&self) -> Vec<Vec<f64>> {
