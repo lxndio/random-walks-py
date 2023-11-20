@@ -7,10 +7,13 @@ use num::Zero;
 #[cfg(feature = "plotting")]
 use plotters::prelude::*;
 use std::fmt::Debug;
-use std::ops::DerefMut;
+use std::ops::{DerefMut, Range};
+use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Instant;
+use workerpool::thunk::{Thunk, ThunkWorker};
+use workerpool::Pool;
 #[cfg(feature = "saving")]
 use {
     std::fs::File,
@@ -168,35 +171,28 @@ impl DynamicPrograms for SimpleDynamicProgram {
         let (limit_neg, limit_pos) = self.limits();
         let kernel = Arc::new(RwLock::new(self.kernel.clone()));
         let field_probabilities = Arc::new(RwLock::new(self.field_probabilities.clone()));
+        let pool = Pool::<ThunkWorker<(Range<isize>, Range<isize>, Vec<Vec<f64>>)>>::new(10);
+        let (tx, rx) = channel();
 
         // Define chunks
-        let ranges = (limit_neg..0, 0..limit_pos + 1);
-        let chunks = vec![
-            (ranges.0.clone(), ranges.0.clone()),
-            (ranges.1.clone(), ranges.0.clone()),
-            (ranges.0.clone(), ranges.1.clone()),
-            (ranges.1.clone(), ranges.1.clone()),
-        ];
-
-        // let chunk_size = ((self.time_limit + 1) / 3) as isize;
-        // let mut ranges = Vec::new();
-        // for i in 0..3 - 1 {
-        //     ranges.push((limit_neg + i * chunk_size..limit_neg + (i + 1) * chunk_size));
-        // }
-        // ranges.push(limit_neg + 2 * chunk_size..limit_pos);
-        // let mut chunks = Vec::new();
-        // for x in 0..3 {
-        //     for y in 0..3 {
-        //         chunks.push((ranges[x].clone(), ranges[y].clone()));
-        //     }
-        // }
+        let chunk_size = ((self.time_limit + 1) / 3) as isize;
+        let mut ranges = Vec::new();
+        for i in 0..3 - 1 {
+            ranges.push((limit_neg + i * chunk_size..limit_neg + (i + 1) * chunk_size));
+        }
+        ranges.push(limit_neg + 2 * chunk_size..limit_pos + 1);
+        let mut chunks = Vec::new();
+        for x in 0..3 {
+            for y in 0..3 {
+                chunks.push((ranges[x].clone(), ranges[y].clone()));
+            }
+        }
 
         self.set(0, 0, 0, 1.0);
 
         let start = Instant::now();
 
         for t in 1..=limit_pos as usize {
-            let mut handles = Vec::new();
             let table_old = Arc::new(RwLock::new(self.table[t - 1].clone()));
 
             for (x_range, y_range) in chunks.clone() {
@@ -204,63 +200,143 @@ impl DynamicPrograms for SimpleDynamicProgram {
                 let field_probabilities = field_probabilities.clone();
                 let table_old = table_old.clone();
 
-                handles.push(thread::spawn(move || {
-                    let size = (2 * limit_pos + 1) as usize;
-                    let mut table_new = vec![vec![0.0; size]; size];
+                pool.execute_to(
+                    tx.clone(),
+                    Thunk::of(move || {
+                        let mut probs = vec![vec![0.0; y_range.len()]; x_range.len()];
+                        let (mut i, mut j) = (0, 0);
 
-                    for x in x_range.clone() {
-                        for y in y_range.clone() {
-                            apply_kernel(
-                                &table_old.read().unwrap(),
-                                &mut table_new,
-                                &kernel.read().unwrap(),
-                                &field_probabilities.read().unwrap(),
-                                (limit_neg, limit_pos),
-                                x,
-                                y,
-                                t,
-                            );
+                        for x in x_range.clone() {
+                            for y in y_range.clone() {
+                                probs[i][j] = apply_kernel(
+                                    &table_old.read().unwrap(),
+                                    &kernel.read().unwrap(),
+                                    &field_probabilities.read().unwrap(),
+                                    (limit_neg, limit_pos),
+                                    x,
+                                    y,
+                                    t,
+                                );
+
+                                j += 1;
+                            }
+
+                            i += 1;
+                            j = 0;
                         }
-                    }
 
-                    (table_new, x_range, y_range)
-                }));
+                        (x_range.clone(), y_range.clone(), probs)
+                    }),
+                );
             }
 
-            for handle in handles.into_iter() {
-                let (table_new, x_range, y_range) = handle.join().unwrap();
-                let (x_range, y_range) = (
-                    (self.time_limit as isize + x_range.start) as usize
-                        ..(self.time_limit as isize + x_range.end) as usize,
-                    (self.time_limit as isize + y_range.start) as usize
-                        ..(self.time_limit as isize + y_range.end) as usize,
-                );
+            for (x_range, y_range, probs) in rx.iter().take(9) {
+                let (mut i, mut j) = (0, 0);
 
-                for x in x_range {
-                    self.table[t][x][y_range.clone()]
-                        .copy_from_slice(&table_new[x][y_range.clone()]);
+                for x in x_range.clone() {
+                    for y in y_range.clone() {
+                        self.table[t][(self.time_limit as isize + x) as usize]
+                            [(self.time_limit as isize + y) as usize] = probs[i][j];
+
+                        j += 1;
+                    }
+
+                    i += 1;
+                    j = 0;
                 }
             }
 
-            // for handle in handles.into_iter() {
-            //     let (table_new, x_range, y_range) = handle.join().unwrap();
-            //     let (x_range, y_range) = (
-            //         (self.time_limit as isize + x_range.start) as usize..(self.time_limit as isize + x_range.end) as usize,
-            //         (self.time_limit as isize + y_range.start) as usize..(self.time_limit as isize + y_range.end) as usize,
-            //     );
-            //
-            //     for x in x_range {
-            //         for y in y_range.clone() {
-            //             self.table[t][x][y] = table_new[x][y];
-            //         }
-            //     }
-            // }
+            // println!("[loop] queued: {}, active: {}", pool.queued_count(), pool.active_count());
         }
 
         let duration = start.elapsed();
 
         println!("Computation took {:?}", duration);
     }
+
+    // fn compute_parallel(&mut self) {
+    //     let (limit_neg, limit_pos) = self.limits();
+    //     let kernel = Arc::new(RwLock::new(self.kernel.clone()));
+    //     let field_probabilities = Arc::new(RwLock::new(self.field_probabilities.clone()));
+    //
+    //     // Define chunks
+    //     let ranges = (limit_neg..0, 0..limit_pos + 1);
+    //     let chunks = vec![
+    //         (ranges.0.clone(), ranges.0.clone()),
+    //         (ranges.1.clone(), ranges.0.clone()),
+    //         (ranges.0.clone(), ranges.1.clone()),
+    //         (ranges.1.clone(), ranges.1.clone()),
+    //     ];
+    //
+    //     // let chunk_size = ((self.time_limit + 1) / 3) as isize;
+    //     // let mut ranges = Vec::new();
+    //     // for i in 0..3 - 1 {
+    //     //     ranges.push((limit_neg + i * chunk_size..limit_neg + (i + 1) * chunk_size));
+    //     // }
+    //     // ranges.push(limit_neg + 2 * chunk_size..limit_pos);
+    //     // let mut chunks = Vec::new();
+    //     // for x in 0..3 {
+    //     //     for y in 0..3 {
+    //     //         chunks.push((ranges[x].clone(), ranges[y].clone()));
+    //     //     }
+    //     // }
+    //
+    //     self.set(0, 0, 0, 1.0);
+    //
+    //     let start = Instant::now();
+    //
+    //     for t in 1..=limit_pos as usize {
+    //         let mut handles = Vec::new();
+    //         let table_old = Arc::new(RwLock::new(self.table[t - 1].clone()));
+    //
+    //         for (x_range, y_range) in chunks.clone() {
+    //             let kernel = kernel.clone();
+    //             let field_probabilities = field_probabilities.clone();
+    //             let table_old = table_old.clone();
+    //
+    //             handles.push(thread::spawn(move || {
+    //                 let size = (2 * limit_pos + 1) as usize;
+    //                 let mut table_new = vec![vec![0.0; size]; size];
+    //
+    //                 for x in x_range.clone() {
+    //                     for y in y_range.clone() {
+    //                         apply_kernel(
+    //                             &table_old.read().unwrap(),
+    //                             &mut table_new,
+    //                             &kernel.read().unwrap(),
+    //                             &field_probabilities.read().unwrap(),
+    //                             (limit_neg, limit_pos),
+    //                             x,
+    //                             y,
+    //                             t,
+    //                         );
+    //                     }
+    //                 }
+    //
+    //                 (table_new, x_range, y_range)
+    //             }));
+    //         }
+    //
+    //         for handle in handles.into_iter() {
+    //             let (table_new, x_range, y_range) = handle.join().unwrap();
+    //             let (x_range, y_range) = (
+    //                 (self.time_limit as isize + x_range.start) as usize
+    //                     ..(self.time_limit as isize + x_range.end) as usize,
+    //                 (self.time_limit as isize + y_range.start) as usize
+    //                     ..(self.time_limit as isize + y_range.end) as usize,
+    //             );
+    //
+    //             for x in x_range {
+    //                 self.table[t][x][y_range.clone()]
+    //                     .copy_from_slice(&table_new[x][y_range.clone()]);
+    //             }
+    //         }
+    //     }
+    //
+    //     let duration = start.elapsed();
+    //
+    //     println!("Computation took {:?}", duration);
+    // }
 
     #[cfg(not(tarpaulin_include))]
     fn field_probabilities(&self) -> Vec<Vec<f64>> {
@@ -369,14 +445,13 @@ impl DynamicPrograms for SimpleDynamicProgram {
 
 fn apply_kernel(
     table_old: &Vec<Vec<f64>>,
-    table_new: &mut Vec<Vec<f64>>,
     kernel: &Kernel,
     field_probabilities: &Vec<Vec<f64>>,
     limits: (isize, isize),
     x: isize,
     y: isize,
     t: usize,
-) {
+) -> f64 {
     let ks = (kernel.size() / 2) as isize;
     let (limit_neg, limit_pos) = limits;
     let mut sum = 0.0;
@@ -400,9 +475,45 @@ fn apply_kernel(
         }
     }
 
-    table_new[(limit_pos + x) as usize][(limit_pos + y) as usize] =
-        sum * field_probabilities[(limit_pos + x) as usize][(limit_pos + y) as usize];
+    sum * field_probabilities[(limit_pos + x) as usize][(limit_pos + y) as usize]
 }
+
+// fn apply_kernel(
+//     table_old: &Vec<Vec<f64>>,
+//     table_new: &mut Vec<Vec<f64>>,
+//     kernel: &Kernel,
+//     field_probabilities: &Vec<Vec<f64>>,
+//     limits: (isize, isize),
+//     x: isize,
+//     y: isize,
+//     t: usize,
+// ) {
+//     let ks = (kernel.size() / 2) as isize;
+//     let (limit_neg, limit_pos) = limits;
+//     let mut sum = 0.0;
+//
+//     for i in x - ks..=x + ks {
+//         if i < limit_neg || i > limit_pos {
+//             continue;
+//         }
+//
+//         for j in y - ks..=y + ks {
+//             if j < limit_neg || j > limit_pos {
+//                 continue;
+//             }
+//
+//             // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
+//             let kernel_x = x - i;
+//             let kernel_y = y - j;
+//
+//             sum += table_old[(limit_pos + i) as usize][(limit_pos + j) as usize]
+//                 * kernel.at(kernel_x, kernel_y);
+//         }
+//     }
+//
+//     table_new[(limit_pos + x) as usize][(limit_pos + y) as usize] =
+//         sum * field_probabilities[(limit_pos + x) as usize][(limit_pos + y) as usize];
+// }
 
 #[cfg(not(tarpaulin_include))]
 impl Debug for SimpleDynamicProgram {
