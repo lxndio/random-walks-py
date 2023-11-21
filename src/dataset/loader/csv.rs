@@ -115,8 +115,10 @@ impl DatasetLoader for CSVLoader {
         for result in rdr.records() {
             let record = result?;
 
-            if record.len() != self.options.column_actions.len() {
+            if record.len() > self.options.column_actions.len() {
                 bail!(DatasetLoaderError::MoreColumnsThanActions);
+            } else if record.len() < self.options.column_actions.len() {
+                bail!(DatasetLoaderError::FewerColumnsThanActions);
             }
 
             let mut point = match self.options.coordinate_type {

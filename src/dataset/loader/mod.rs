@@ -22,6 +22,8 @@ pub enum DatasetLoaderError {
     NoXColumnSpecified,
     #[error("a column containing Y coordinates must be specified")]
     NoYColumnSpecified,
+    #[error("there are fewer columns in the dataset than actions have been set")]
+    FewerColumnsThanActions,
     #[error("there are more columns in the dataset than actions have been set")]
     MoreColumnsThanActions,
 }
