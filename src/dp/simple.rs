@@ -1,5 +1,5 @@
 use crate::dp::builder::DynamicProgramBuilder;
-use crate::dp::{DynamicProgram, DynamicPrograms};
+use crate::dp::{DynamicProgramPool, DynamicPrograms};
 use crate::kernel;
 use crate::kernel::Kernel;
 use anyhow::{bail, Context};
@@ -8,7 +8,12 @@ use num::Zero;
 use plotters::prelude::*;
 use pyo3::{pyclass, pymethods, PyCell, PyResult};
 use std::fmt::Debug;
+use std::ops::Range;
+use std::sync::mpsc::channel;
+use std::sync::{Arc, RwLock};
 use std::time::Instant;
+use workerpool::thunk::{Thunk, ThunkWorker};
+use workerpool::Pool;
 #[cfg(feature = "saving")]
 use {
     std::fs::File,
@@ -19,21 +24,32 @@ use {
 
 #[pyclass]
 #[derive(Clone)]
-pub struct SimpleDynamicProgram {
+pub struct DynamicProgram {
     pub(crate) table: Vec<Vec<Vec<f64>>>,
     pub(crate) time_limit: usize,
-    pub(crate) kernel: Kernel,
-    pub(crate) field_probabilities: Vec<Vec<f64>>,
+    pub(crate) kernels: Vec<Kernel>,
+    pub(crate) field_types: Vec<Vec<usize>>,
 }
 
 #[pymethods]
-impl SimpleDynamicProgram {
+impl DynamicProgram {
     #[new]
-    #[pyo3(signature = (time_limit, kernel, field_probabilities=Vec::new()))]
-    pub fn new(time_limit: usize, kernel: Kernel, mut field_probabilities: Vec<Vec<f64>>) -> Self {
-        if field_probabilities.is_empty() {
-            field_probabilities = vec![vec![1.0; 2 * time_limit + 1]; 2 * time_limit + 1];
+    #[pyo3(signature = (time_limit, kernel=None, kernels=Vec::new(), field_types=Vec::new()))]
+    pub fn new(
+        time_limit: usize,
+        kernel: Kernel,
+        kernels: Vec<Kernel>,
+        mut field_types: Vec<Vec<usize>>,
+    ) -> Self {
+        if field_types.is_empty() {
+            field_types = vec![vec![0; 2 * time_limit + 1]; 2 * time_limit + 1];
         }
+
+        let kernels = if let Some(kernel) = kernel {
+            vec![kernel]
+        } else {
+            kernels
+        };
 
         Self {
             table: vec![
@@ -41,8 +57,8 @@ impl SimpleDynamicProgram {
                 time_limit + 1
             ],
             time_limit,
-            kernel,
-            field_probabilities,
+            kernels,
+            field_types,
         }
     }
 
@@ -74,7 +90,10 @@ impl SimpleDynamicProgram {
     }
 
     fn apply_kernel_at(&mut self, x: isize, y: isize, t: usize) {
-        let ks = (self.kernel.size() / 2) as isize;
+        let field_type = self.field_type_at(x, y);
+        let kernel = self.kernels[field_type].clone();
+
+        let ks = (kernel.size() / 2) as isize;
         let (limit_neg, limit_pos) = self.limits();
         let mut sum = 0.0;
 
@@ -92,31 +111,31 @@ impl SimpleDynamicProgram {
                 let kernel_x = x - i;
                 let kernel_y = y - j;
 
-                sum += self.at(i, j, t - 1) * self.kernel.at(kernel_x, kernel_y);
+                sum += self.at(i, j, t - 1) * kernel.at(kernel_x, kernel_y);
             }
         }
 
-        self.set(x, y, t, sum * self.field_probability_at(x, y));
+        self.set(x, y, t, sum);
     }
 
-    fn field_probability_at(&self, x: isize, y: isize) -> f64 {
+    fn field_type_at(&self, x: isize, y: isize) -> usize {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
 
-        self.field_probabilities[x][y]
+        self.field_types[x][y]
     }
 
-    fn field_probability_set(&mut self, x: isize, y: isize, val: f64) {
+    fn field_type_set(&mut self, x: isize, y: isize, val: usize) {
         let x = (self.time_limit as isize + x) as usize;
         let y = (self.time_limit as isize + y) as usize;
 
-        self.field_probabilities[x][y] = val;
+        self.field_types[x][y] = val;
     }
 
     #[staticmethod]
     #[pyo3(name = "load")]
-    pub fn py_load(filename: String) -> anyhow::Result<SimpleDynamicProgram> {
-        match SimpleDynamicProgram::load(filename) {
+    pub fn py_load(filename: String) -> anyhow::Result<DynamicProgram> {
+        match DynamicProgram::load(filename) {
             Ok(DynamicProgram::Simple(dp)) => Ok(dp),
             Err(e) => Err(e),
             _ => unreachable!(),
@@ -133,8 +152,8 @@ impl SimpleDynamicProgram {
         DynamicPrograms::compute(self)
     }
 
-    pub fn field_probabilities(&self) -> Vec<Vec<f64>> {
-        DynamicPrograms::field_probabilities(self)
+    pub fn field_types(&self) -> Vec<Vec<usize>> {
+        DynamicPrograms::field_types(self)
     }
 
     pub fn heatmap(&self, path: String, t: usize) -> anyhow::Result<()> {
@@ -163,9 +182,9 @@ impl SimpleDynamicProgram {
     }
 }
 
-impl SimpleDynamicProgram {
+impl DynamicProgram {
     #[cfg(feature = "saving")]
-    pub fn load(filename: String) -> anyhow::Result<DynamicProgram> {
+    pub fn load(filename: String) -> anyhow::Result<DynamicProgramPool> {
         let file = File::open(filename)?;
         let reader = BufReader::new(file);
         let mut decoder = Decoder::new(reader).context("could not create decoder")?;
@@ -176,7 +195,7 @@ impl SimpleDynamicProgram {
             Err(_) => bail!("could not read time limit from file"),
         };
 
-        let DynamicProgram::Simple(mut dp) = DynamicProgramBuilder::new()
+        let DynamicProgramPool::Single(mut dp) = DynamicProgramBuilder::new()
             .simple()
             .time_limit(time_limit as usize)
             .kernel(kernel!(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
@@ -200,15 +219,15 @@ impl SimpleDynamicProgram {
         for x in limit_neg..=limit_pos {
             for y in limit_neg..=limit_pos {
                 decoder.read_exact(&mut buf)?;
-                dp.field_probability_set(x, y, f64::from_le_bytes(buf));
+                dp.field_type_set(x, y, u64::from_le_bytes(buf) as usize);
             }
         }
 
-        Ok(DynamicProgram::Simple(dp))
+        Ok(DynamicProgramPool::Single(dp))
     }
 }
 
-impl DynamicPrograms for SimpleDynamicProgram {
+impl DynamicPrograms for DynamicProgram {
     #[cfg(not(tarpaulin_include))]
     fn limits(&self) -> (isize, isize) {
         (-(self.time_limit as isize), self.time_limit as isize)
@@ -234,9 +253,97 @@ impl DynamicPrograms for SimpleDynamicProgram {
         println!("Computation took {:?}", duration);
     }
 
+    fn compute_parallel(&mut self) {
+        let (limit_neg, limit_pos) = self.limits();
+        let kernels = Arc::new(RwLock::new(self.kernels.clone()));
+        let field_types = Arc::new(RwLock::new(self.field_types.clone()));
+        let pool = Pool::<ThunkWorker<(Range<isize>, Range<isize>, Vec<Vec<f64>>)>>::new(10);
+        let (tx, rx) = channel();
+
+        // Define chunks
+
+        let chunk_size = ((self.time_limit + 1) / 3) as isize;
+        let mut ranges = Vec::new();
+
+        for i in 0..3 - 1 {
+            ranges.push((limit_neg + i * chunk_size..limit_neg + (i + 1) * chunk_size));
+        }
+
+        ranges.push(limit_neg + 2 * chunk_size..limit_pos + 1);
+        let mut chunks = Vec::new();
+
+        for x in 0..3 {
+            for y in 0..3 {
+                chunks.push((ranges[x].clone(), ranges[y].clone()));
+            }
+        }
+
+        self.set(0, 0, 0, 1.0);
+
+        let start = Instant::now();
+
+        for t in 1..=limit_pos as usize {
+            let table_old = Arc::new(RwLock::new(self.table[t - 1].clone()));
+
+            for (x_range, y_range) in chunks.clone() {
+                let kernels = kernels.clone();
+                let field_types = field_types.clone();
+                let table_old = table_old.clone();
+
+                pool.execute_to(
+                    tx.clone(),
+                    Thunk::of(move || {
+                        let mut probs = vec![vec![0.0; y_range.len()]; x_range.len()];
+                        let (mut i, mut j) = (0, 0);
+
+                        for x in x_range.clone() {
+                            for y in y_range.clone() {
+                                probs[i][j] = apply_kernel(
+                                    &table_old.read().unwrap(),
+                                    &kernels.read().unwrap(),
+                                    &field_types.read().unwrap(),
+                                    (limit_neg, limit_pos),
+                                    x,
+                                    y,
+                                );
+
+                                j += 1;
+                            }
+
+                            i += 1;
+                            j = 0;
+                        }
+
+                        (x_range.clone(), y_range.clone(), probs)
+                    }),
+                );
+            }
+
+            for (x_range, y_range, probs) in rx.iter().take(9) {
+                let (mut i, mut j) = (0, 0);
+
+                for x in x_range.clone() {
+                    for y in y_range.clone() {
+                        self.table[t][(self.time_limit as isize + x) as usize]
+                            [(self.time_limit as isize + y) as usize] = probs[i][j];
+
+                        j += 1;
+                    }
+
+                    i += 1;
+                    j = 0;
+                }
+            }
+        }
+
+        let duration = start.elapsed();
+
+        println!("Computation took {:?}", duration);
+    }
+
     #[cfg(not(tarpaulin_include))]
-    fn field_probabilities(&self) -> Vec<Vec<f64>> {
-        self.field_probabilities.clone()
+    fn field_types(&self) -> Vec<Vec<usize>> {
+        self.field_types.clone()
     }
 
     #[cfg(not(tarpaulin_include))]
@@ -331,7 +438,7 @@ impl DynamicPrograms for SimpleDynamicProgram {
 
         for x in limit_neg..=limit_pos {
             for y in limit_neg..=limit_pos {
-                encoder.write(&self.field_probability_at(x, y).to_le_bytes())?;
+                encoder.write(&(self.field_type_at(x, y) as u64).to_le_bytes())?;
             }
         }
 
@@ -339,8 +446,44 @@ impl DynamicPrograms for SimpleDynamicProgram {
     }
 }
 
+fn apply_kernel(
+    table_old: &Vec<Vec<f64>>,
+    kernels: &Vec<Kernel>,
+    field_types: &Vec<Vec<usize>>,
+    (limit_neg, limit_pos): (isize, isize),
+    x: isize,
+    y: isize,
+) -> f64 {
+    let field_type = field_types[(limit_pos + x) as usize][(limit_pos + y) as usize];
+    let kernel = kernels[field_type].clone();
+
+    let ks = (kernel.size() / 2) as isize;
+    let mut sum = 0.0;
+
+    for i in x - ks..=x + ks {
+        if i < limit_neg || i > limit_pos {
+            continue;
+        }
+
+        for j in y - ks..=y + ks {
+            if j < limit_neg || j > limit_pos {
+                continue;
+            }
+
+            // Kernel coordinates are inverted offset, i.e. -(i - x) and -(j - y)
+            let kernel_x = x - i;
+            let kernel_y = y - j;
+
+            sum += table_old[(limit_pos + i) as usize][(limit_pos + j) as usize]
+                * kernel.at(kernel_x, kernel_y);
+        }
+    }
+
+    sum
+}
+
 #[cfg(not(tarpaulin_include))]
-impl Debug for SimpleDynamicProgram {
+impl Debug for DynamicProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DynamicProgram")
             .field("time_limit", &self.time_limit)
@@ -348,15 +491,15 @@ impl Debug for SimpleDynamicProgram {
     }
 }
 
-impl PartialEq for SimpleDynamicProgram {
+impl PartialEq for DynamicProgram {
     fn eq(&self, other: &Self) -> bool {
         self.time_limit == other.time_limit
             && self.table == other.table
-            && self.field_probabilities == other.field_probabilities
+            && self.field_types == other.field_types
     }
 }
 
-impl Eq for SimpleDynamicProgram {}
+impl Eq for DynamicProgram {}
 
 #[cfg(test)]
 mod tests {

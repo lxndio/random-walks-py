@@ -1,6 +1,6 @@
 [package]
 name = "randomwalks-lib"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Alexander Korn <alexander.korn@tu-dortmund.de>"]
 edition = "2021"
 
@@ -26,6 +26,9 @@ proj = "0.27.2"
 plotters = { version = "0.3.5", optional = true }
 polars = { version = "0.32.1", features = ["rows"], optional = true }
 zstd = { version = "0.12.4", features = ["zstdmt"], optional =  true }
+workerpool = "1.2.0"
+statrs = "0.16.0"
+nalgebra = "0.32.3"
 
 [dev-dependencies]
 criterion = { version = "0.5.1", features = ["html_reports"] }

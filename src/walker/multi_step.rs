@@ -1,5 +1,5 @@
-use crate::dp::simple::SimpleDynamicProgram;
-use crate::dp::DynamicProgram;
+use crate::dp::simple::DynamicProgram;
+use crate::dp::{DynamicProgram, DynamicProgramPool};
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use pyo3::{pyclass, pymethods};
@@ -23,17 +23,23 @@ impl MultiStepWalker {
 
     pub fn generate_path(
         &self,
-        dp: SimpleDynamicProgram,
+        dp: DynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        Walker::generate_path(self, &DynamicProgram::Simple(dp), to_x, to_y, time_steps)
+        Walker::generate_path(
+            self,
+            &DynamicProgramPool::Single(dp),
+            to_x,
+            to_y,
+            time_steps,
+        )
     }
 
     pub fn generate_paths(
         &self,
-        dp: SimpleDynamicProgram,
+        dp: DynamicProgram,
         qty: usize,
         to_x: isize,
         to_y: isize,
@@ -41,7 +47,7 @@ impl MultiStepWalker {
     ) -> Result<Vec<Walk>, WalkerError> {
         Walker::generate_paths(
             self,
-            &DynamicProgram::Simple(dp),
+            &DynamicProgramPool::Single(dp),
             qty,
             to_x,
             to_y,
@@ -57,13 +63,13 @@ impl MultiStepWalker {
 impl Walker for MultiStepWalker {
     fn generate_path(
         &self,
-        dp: &DynamicProgram,
+        dp: &DynamicProgramPool,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        let DynamicProgram::Simple(dp) = dp else {
-            return Err(WalkerError::WrongDynamicProgramType);
+        let DynamicProgramPool::Single(dp) = dp else {
+            return Err(WalkerError::RequiresSingleDynamicProgram);
         };
         let max_step_size = self.max_step_size as isize;
 

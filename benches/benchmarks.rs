@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
-use randomwalks_lib::dp::simple::SimpleDynamicProgram;
+use randomwalks_lib::dp::simple::DynamicProgram;
 use randomwalks_lib::dp::{DynamicProgramOptions, DynamicPrograms};
 use randomwalks_lib::kernel::simple_rw::SimpleRwGenerator;
 use randomwalks_lib::kernel::Kernel;
@@ -19,7 +19,7 @@ pub fn benchmark_dp(c: &mut Criterion) {
                     ..Default::default()
                 };
 
-                let mut dp = SimpleDynamicProgram::new(options);
+                let mut dp = DynamicProgram::new(options);
 
                 b.iter(|| {
                     dp.compute();

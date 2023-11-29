@@ -1,5 +1,5 @@
-use crate::dp::simple::SimpleDynamicProgram;
-use crate::dp::DynamicProgram;
+use crate::dp::simple::DynamicProgram;
+use crate::dp::{DynamicProgram, DynamicProgramPool};
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use pyo3::{pyclass, pymethods};
@@ -27,17 +27,23 @@ impl LevyWalker {
 
     pub fn generate_path(
         &self,
-        dp: SimpleDynamicProgram,
+        dp: DynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        Walker::generate_path(self, &DynamicProgram::Simple(dp), to_x, to_y, time_steps)
+        Walker::generate_path(
+            self,
+            &DynamicProgramPool::Single(dp),
+            to_x,
+            to_y,
+            time_steps,
+        )
     }
 
     pub fn generate_paths(
         &self,
-        dp: SimpleDynamicProgram,
+        dp: DynamicProgram,
         qty: usize,
         to_x: isize,
         to_y: isize,
@@ -45,7 +51,7 @@ impl LevyWalker {
     ) -> Result<Vec<Walk>, WalkerError> {
         Walker::generate_paths(
             self,
-            &DynamicProgram::Simple(dp),
+            &DynamicProgramPool::Single(dp),
             qty,
             to_x,
             to_y,
@@ -61,13 +67,13 @@ impl LevyWalker {
 impl Walker for LevyWalker {
     fn generate_path(
         &self,
-        dp: &DynamicProgram,
+        dp: &DynamicProgramPool,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        let DynamicProgram::Simple(dp) = dp else {
-            return Err(WalkerError::WrongDynamicProgramType);
+        let DynamicProgramPool::Single(dp) = dp else {
+            return Err(WalkerError::RequiresSingleDynamicProgram);
         };
 
         let mut path = Vec::new();
@@ -89,13 +95,17 @@ impl Walker for LevyWalker {
                 1
             };
 
-            let prev_probs = [
-                dp.at(x, y, t - 1),                     // Stay
+            let mut prev_probs = vec![
                 dp.at(x - distance as isize, y, t - 1), // West
                 dp.at(x, y - distance as isize, t - 1), // North
                 dp.at(x + distance as isize, y, t - 1), // East
                 dp.at(x, y + distance as isize, t - 1), // South
             ];
+
+            // Only allow staying if no jump occurs
+            if distance == 1 {
+                prev_probs.push(dp.at(x, y, t - 1)); // Stay
+            }
 
             let direction = match WeightedIndex::new(prev_probs) {
                 Ok(dist) => dist.sample(&mut rng),
@@ -104,11 +114,11 @@ impl Walker for LevyWalker {
             };
 
             match direction {
-                0 => (),                     // Stay
-                1 => x -= distance as isize, // West
-                2 => y -= distance as isize, // North
-                3 => x += distance as isize, // East
-                4 => y += distance as isize, // South
+                0 => x -= distance as isize, // West
+                1 => y -= distance as isize, // North
+                2 => x += distance as isize, // East
+                3 => y += distance as isize, // South
+                4 => (),                     // Stay
                 _ => unreachable!("Other directions should not be chosen from the distribution"),
             }
         }

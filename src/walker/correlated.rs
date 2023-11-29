@@ -1,5 +1,5 @@
 use crate::dp::multi::MultiDynamicProgram;
-use crate::dp::DynamicProgram;
+use crate::dp::{DynamicProgram, DynamicProgramPool};
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use pyo3::{pyclass, pymethods};
@@ -22,17 +22,23 @@ impl CorrelatedWalker {
 
     pub fn generate_path(
         &self,
-        dp: MultiDynamicProgram,
+        dp: Vec<DynamicProgram>,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        Walker::generate_path(self, &DynamicProgram::Multi(dp), to_x, to_y, time_steps)
+        Walker::generate_path(
+            self,
+            &DynamicProgramPool::Multiple(dp),
+            to_x,
+            to_y,
+            time_steps,
+        )
     }
 
     pub fn generate_paths(
         &self,
-        dp: MultiDynamicProgram,
+        dp: Vec<DynamicProgram>,
         qty: usize,
         to_x: isize,
         to_y: isize,
@@ -40,7 +46,7 @@ impl CorrelatedWalker {
     ) -> Result<Vec<Walk>, WalkerError> {
         Walker::generate_paths(
             self,
-            &DynamicProgram::Multi(dp),
+            &DynamicProgramPool::Multiple(dp),
             qty,
             to_x,
             to_y,
@@ -56,13 +62,13 @@ impl CorrelatedWalker {
 impl Walker for CorrelatedWalker {
     fn generate_path(
         &self,
-        dp: &DynamicProgram,
+        dp: &DynamicProgramPool,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        let DynamicProgram::Multi(dp) = dp else {
-            return Err(WalkerError::WrongDynamicProgramType);
+        let DynamicProgramPool::Multiple(dp) = dp else {
+            return Err(WalkerError::RequiresMultipleDynamicPrograms);
         };
 
         let mut path = Vec::new();
@@ -70,8 +76,8 @@ impl Walker for CorrelatedWalker {
         let mut rng = rand::thread_rng();
 
         // Check if any path exists leading to the given end point for each variant
-        for variant in 0..dp.variants() {
-            if dp.at(to_x, to_y, time_steps, variant).is_zero() {
+        for variant in 0..dp.len() {
+            if dp[variant].at(to_x, to_y, time_steps).is_zero() {
                 return Err(WalkerError::NoPathExists);
             }
         }
@@ -104,11 +110,11 @@ impl Walker for CorrelatedWalker {
             };
 
             let prev_probs = [
-                dp.at(x, y, t - 1, variant),
-                dp.at(x - 1, y, t - 1, variant),
-                dp.at(x, y - 1, t - 1, variant),
-                dp.at(x + 1, y, t - 1, variant),
-                dp.at(x, y + 1, t - 1, variant),
+                dp[variant].at(x, y, t - 1),
+                dp[variant].at(x - 1, y, t - 1),
+                dp[variant].at(x, y - 1, t - 1),
+                dp[variant].at(x + 1, y, t - 1),
+                dp[variant].at(x, y + 1, t - 1),
             ];
 
             let direction = match WeightedIndex::new(prev_probs) {

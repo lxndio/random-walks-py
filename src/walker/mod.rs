@@ -5,20 +5,14 @@ pub mod levy;
 pub mod multi_step;
 pub mod standard;
 
-use crate::dp::DynamicProgram;
+use crate::dp::DynamicProgramPool;
 use crate::walk::Walk;
-use crate::walker::correlated::CorrelatedWalker;
-use crate::walker::levy::LevyWalker;
-use crate::walker::multi_step::MultiStepWalker;
-use crate::walker::standard::StandardWalker;
-use pyo3::exceptions::PyValueError;
-use pyo3::{pyclass, FromPyObject, PyErr};
 use thiserror::Error;
 
 pub trait Walker {
     fn generate_path(
         &self,
-        dp: &DynamicProgram,
+        dp: &DynamicProgramPool,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
@@ -26,7 +20,7 @@ pub trait Walker {
 
     fn generate_paths(
         &self,
-        dp: &DynamicProgram,
+        dp: &DynamicProgramPool,
         qty: usize,
         to_x: isize,
         to_y: isize,
@@ -44,23 +38,14 @@ pub trait Walker {
     fn name(&self, short: bool) -> String;
 }
 
-#[derive(FromPyObject)]
-pub enum WalkerType {
-    #[pyo3(transparent)]
-    Standard(StandardWalker),
-    #[pyo3(transparent)]
-    Correlated(CorrelatedWalker),
-    #[pyo3(transparent)]
-    MultiStep(MultiStepWalker),
-    #[pyo3(transparent)]
-    Levy(LevyWalker),
-}
-
-#[pyclass]
 #[derive(Error, Debug)]
+#[pyclass]
 pub enum WalkerError {
-    #[error("wrong type of dynamic program given")]
-    WrongDynamicProgramType,
+    #[error("the walker requires a single dynamic program but multiple were given")]
+    RequiresSingleDynamicProgram,
+
+    #[error("the walker requires multiple dynamic programs but only a single one was given")]
+    RequiresMultipleDynamicPrograms,
 
     #[error("no path exists")]
     NoPathExists,
@@ -70,10 +55,4 @@ pub enum WalkerError {
 
     #[error("error while computing random distribution")]
     RandomDistributionError,
-}
-
-impl From<WalkerError> for PyErr {
-    fn from(value: WalkerError) -> Self {
-        PyValueError::new_err(value.to_string())
-    }
 }

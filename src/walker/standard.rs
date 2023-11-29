@@ -1,5 +1,5 @@
-use crate::dp::simple::SimpleDynamicProgram;
-use crate::dp::DynamicProgram;
+use crate::dp::simple::DynamicProgram;
+use crate::dp::{DynamicProgram, DynamicProgramPool};
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use pyo3::{pyclass, pymethods, PyAny};
@@ -21,17 +21,23 @@ impl StandardWalker {
 
     pub fn generate_path(
         &self,
-        dp: SimpleDynamicProgram,
+        dp: DynamicProgram,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        Walker::generate_path(self, &DynamicProgram::Simple(dp), to_x, to_y, time_steps)
+        Walker::generate_path(
+            self,
+            &DynamicProgramPool::Single(dp),
+            to_x,
+            to_y,
+            time_steps,
+        )
     }
 
     pub fn generate_paths(
         &self,
-        dp: SimpleDynamicProgram,
+        dp: DynamicProgram,
         qty: usize,
         to_x: isize,
         to_y: isize,
@@ -39,7 +45,7 @@ impl StandardWalker {
     ) -> Result<Vec<Walk>, WalkerError> {
         Walker::generate_paths(
             self,
-            &DynamicProgram::Simple(dp),
+            &DynamicProgramPool::Single(dp),
             qty,
             to_x,
             to_y,
@@ -55,13 +61,13 @@ impl StandardWalker {
 impl Walker for StandardWalker {
     fn generate_path(
         &self,
-        dp: &DynamicProgram,
+        dp: &DynamicProgramPool,
         to_x: isize,
         to_y: isize,
         time_steps: usize,
     ) -> Result<Walk, WalkerError> {
-        let DynamicProgram::Simple(dp) = dp else {
-            return Err(WalkerError::WrongDynamicProgramType);
+        let DynamicProgramPool::Single(dp) = dp else {
+            return Err(WalkerError::RequiresSingleDynamicProgram);
         };
 
         let mut path = Vec::new();
