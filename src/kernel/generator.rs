@@ -1,4 +1,5 @@
 use crate::kernel::Kernel;
+use pyo3::pyclass;
 use thiserror::Error;
 
 pub trait KernelGenerator {

@@ -72,6 +72,7 @@ use pyo3::{pyclass, FromPyObject};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
+pub mod builder;
 pub mod simple;
 
 pub trait DynamicPrograms {

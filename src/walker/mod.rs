@@ -7,6 +7,7 @@ pub mod standard;
 
 use crate::dp::DynamicProgramPool;
 use crate::walk::Walk;
+use pyo3::pyclass;
 use thiserror::Error;
 
 pub trait Walker {
