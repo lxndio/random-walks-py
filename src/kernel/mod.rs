@@ -3,13 +3,14 @@
 use crate::kernel::biased_correlated_rw::BiasedCorrelatedRwGenerator;
 use crate::kernel::biased_rw::BiasedRwGenerator;
 use crate::kernel::correlated_rw::CorrelatedRwGenerator;
-use crate::kernel::generator::KernelGenerator;
+use crate::kernel::generator::{KernelGenerator, KernelGeneratorError};
+use crate::kernel::normal_dist::NormalDistGenerator;
 use crate::kernel::simple_rw::SimpleRwGenerator;
 use anyhow::bail;
 use pyo3::{pyclass, pymethods};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
-use std::ops::{Index, IndexMut, Mul, MulAssign};
+use std::ops::{Div, DivAssign, Index, IndexMut, Mul, MulAssign};
 use strum::EnumIter;
 
 pub mod biased_correlated_rw;
@@ -74,8 +75,87 @@ impl Kernel {
         .unwrap()
     }
 
+    #[staticmethod]
+    pub fn normal_dist(diffusion: f64, size: usize) -> Self {
+        Kernel::from_generator(NormalDistGenerator { diffusion, size }).unwrap()
+    }
+}
+
+impl Kernel {
+    pub fn try_new(size: usize, name: (String, String)) -> anyhow::Result<Self> {
+        if size % 2 == 0 {
+            bail!("size must be odd");
+        }
+
+        Ok(Self {
+            probabilities: vec![vec![0.0; size]; size],
+            name,
+        })
+    }
+
+    pub fn from_generator(generator: impl KernelGenerator) -> Result<Kernel, KernelGeneratorError> {
+        let kernel = Kernel {
+            probabilities: Vec::new(),
+            name: generator.name(),
+        };
+        let mut kernels = vec![kernel];
+
+        generator.prepare(&mut kernels)?;
+        generator.generate(&mut kernels)?;
+
+        Ok(kernels[0].clone())
+    }
+
+    pub fn multiple_from_generator(
+        generator: impl KernelGenerator,
+    ) -> Result<Vec<Kernel>, KernelGeneratorError> {
+        let kernel = Kernel {
+            probabilities: Vec::new(),
+            name: generator.name(),
+        };
+        let mut kernels = vec![kernel.clone(); generator.generates_qty()];
+
+        generator.prepare(&mut kernels)?;
+        generator.generate(&mut kernels)?;
+
+        Ok(kernels)
+    }
+
+    pub fn try_from_value(size: usize, value: f64) -> anyhow::Result<Self> {
+        if size % 2 == 0 {
+            bail!("size must be odd")
+        }
+
+        Ok(Self {
+            probabilities: vec![vec![value; size]; size],
+            name: (String::new(), String::new()),
+        })
+    }
+
+    pub fn initialize(&mut self, size: usize) -> Result<(), KernelGeneratorError> {
+        if size % 2 == 1 {
+            self.probabilities = vec![vec![0.0; size]; size];
+
+            Ok(())
+        } else {
+            Err(KernelGeneratorError::SizeEven)
+        }
+    }
+
     pub fn size(&self) -> usize {
         self.probabilities.len()
+    }
+
+    pub fn sum(&self) -> f64 {
+        let mut sum = 0.0;
+
+        for x in 0..self.size() {
+            for y in 0..self.size() {
+                sum += self.probabilities[x][y];
+            }
+        }
+
+        sum
     }
 
     pub fn set(&mut self, x: isize, y: isize, val: f64) {
@@ -93,9 +173,9 @@ impl Kernel {
     }
 
     /// Rotate kernel matrix clockwise by `degrees`. Only multiples of 90° are supported.
-    pub fn rotate(&mut self, degrees: usize) -> anyhow::Result<()> {
+    pub fn rotate(&mut self, degrees: usize) -> Result<(), String> {
         if degrees % 90 != 0 {
-            bail!("degrees must be a multiple of 90")
+            Err("degrees must be a multiple of 90.".into())
         } else {
             let n = self.probabilities.len();
 
@@ -122,55 +202,6 @@ impl Kernel {
             self.name.0.clone()
         } else {
             self.name.1.clone()
-        }
-    }
-}
-
-impl Kernel {
-    pub fn try_new(size: usize, name: (String, String)) -> anyhow::Result<Self> {
-        if size % 2 == 0 {
-            bail!("size must be odd");
-        }
-
-        Ok(Self {
-            probabilities: vec![vec![0.0; size]; size],
-            name,
-        })
-    }
-
-    pub fn from_generator(generator: impl KernelGenerator) -> Result<Kernel, String> {
-        let kernel = Kernel {
-            probabilities: Vec::new(),
-            name: generator.name(),
-        };
-        let mut kernels = vec![kernel];
-
-        generator.prepare(&mut kernels)?;
-        generator.generate(&mut kernels)?;
-
-        Ok(kernels[0].clone())
-    }
-
-    pub fn multiple_from_generator(generator: impl KernelGenerator) -> Result<Vec<Kernel>, String> {
-        let kernel = Kernel {
-            probabilities: Vec::new(),
-            name: generator.name(),
-        };
-        let mut kernels = vec![kernel.clone(); generator.generates_qty()];
-
-        generator.prepare(&mut kernels)?;
-        generator.generate(&mut kernels)?;
-
-        Ok(kernels)
-    }
-
-    pub fn initialize(&mut self, size: usize) -> anyhow::Result<()> {
-        if size % 2 == 1 {
-            self.probabilities = vec![vec![0.0; size]; size];
-
-            Ok(())
-        } else {
-            bail!("size must be odd");
         }
     }
 }
@@ -243,10 +274,44 @@ impl MulAssign for Kernel {
     }
 }
 
+impl Div for Kernel {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        if self.size() == rhs.size() {
+            let mut new_kernel = self.clone();
+
+            for x in 0..self.size() {
+                for y in 0..self.size() {
+                    new_kernel.probabilities[x][y] /= rhs.probabilities[x][y];
+                }
+            }
+
+            new_kernel
+        } else {
+            panic!("both kernels must have the same size for division");
+        }
+    }
+}
+
+impl DivAssign for Kernel {
+    fn div_assign(&mut self, rhs: Self) {
+        if self.size() == rhs.size() {
+            for x in 0..self.size() {
+                for y in 0..self.size() {
+                    self.probabilities[x][y] /= rhs.probabilities[x][y];
+                }
+            }
+        } else {
+            panic!("both kernels must have the same size for division");
+        }
+    }
+}
+
 /// A macro that allows quick creation of a custom kernel.
 #[macro_export]
 macro_rules! kernel {
-    ($($x:expr),+) => {{
+    ($($x:expr),+ $(,)?) => {{
         let probs = vec![$($x),*];
         let size = (probs.len() as f64).sqrt() as usize;
 
@@ -359,7 +424,7 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         assert!(kernel.rotate(87).is_err());
@@ -370,13 +435,13 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let mut correct_rotation = kernel![
             7.0, 4.0, 1.0,
             8.0, 5.0, 2.0,
-            9.0, 6.0, 3.0
+            9.0, 6.0, 3.0,
         ];
 
         assert!(kernel.rotate(90).is_ok());
@@ -388,13 +453,13 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let mut correct_rotation = kernel![
             9.0, 8.0, 7.0,
             6.0, 5.0, 4.0,
-            3.0, 2.0, 1.0
+            3.0, 2.0, 1.0,
         ];
 
         assert!(kernel.rotate(180).is_ok());
@@ -406,13 +471,13 @@ mod tests {
         let mut kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let mut correct_rotation = kernel![
             3.0, 6.0, 9.0,
             2.0, 5.0, 8.0,
-            1.0, 4.0, 7.0
+            1.0, 4.0, 7.0,
         ];
 
         assert!(kernel.rotate(270).is_ok());
@@ -424,7 +489,7 @@ mod tests {
         let kernel = kernel![
             1.0, 2.0, 3.0,
             4.0, 5.0, 6.0,
-            7.0, 8.0, 9.0
+            7.0, 8.0, 9.0,
         ];
 
         let kernel_correct = Kernel {

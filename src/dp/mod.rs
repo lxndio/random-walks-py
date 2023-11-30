@@ -68,7 +68,7 @@
 //!
 
 use crate::dp::simple::DynamicProgram;
-use pyo3::{pyclass, FromPyObject};
+use pyo3::{pyclass, pymethods, FromPyObject, PyCell, PyObject, PyResult};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -100,6 +100,33 @@ pub enum DynamicProgramError {
     UnwrapOnMultiple,
 }
 
+#[pyclass]
+#[pyo3(name = "DynamicProgramPool")]
+#[derive(Clone, Debug)]
+pub struct PyDynamicProgramPool {
+    dpp: DynamicProgramPool,
+}
+
+#[pymethods]
+impl PyDynamicProgramPool {
+    pub fn single(slf: &PyCell<Self>, dp: PyObject) -> PyResult<Self> {
+        let dp = dp.extract(slf.py())?;
+
+        Ok(Self {
+            dpp: DynamicProgramPool::Single(dp),
+        })
+    }
+
+    pub fn multiple(slf: &PyCell<Self>, dps: Vec<PyObject>) -> PyResult<Self> {
+        let dps = dps.iter().map(|dp| dp.extract(slf.py()).unwrap()).collect();
+
+        Ok(Self {
+            dpp: DynamicProgramPool::Multiple(dps),
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum DynamicProgramPool {
     Single(DynamicProgram),
     Multiple(Vec<DynamicProgram>),
@@ -165,6 +192,12 @@ impl DynamicPrograms for DynamicProgramPool {
     /// holding multiple dynamic programs.
     fn save(&self, filename: String) -> anyhow::Result<()> {
         self.try_unwrap().unwrap().save(filename)
+    }
+}
+
+impl From<PyDynamicProgramPool> for DynamicProgramPool {
+    fn from(value: PyDynamicProgramPool) -> Self {
+        value.dpp
     }
 }
 

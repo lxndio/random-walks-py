@@ -39,7 +39,3 @@ default = ["plotting", "polars_loading", "saving"]
 plotting = ["plotters"]
 polars_loading = ["polars"]
 saving = ["zstd"]
-
-[[bench]]
-name = "benchmarks"
-harness = false

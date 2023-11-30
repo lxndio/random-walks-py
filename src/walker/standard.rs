@@ -1,5 +1,5 @@
 use crate::dp::simple::DynamicProgram;
-use crate::dp::{DynamicProgram, DynamicProgramPool};
+use crate::dp::DynamicProgramPool;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
 use pyo3::{pyclass, pymethods, PyAny};
