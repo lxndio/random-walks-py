@@ -2,22 +2,27 @@ use crate::dp::simple::DynamicProgram;
 use crate::dp::DynamicProgramPool;
 use crate::walker::{Walk, Walker, WalkerError};
 use num::Zero;
-use pyo3::{pyclass, pymethods, PyAny};
+use pyo3::{pyclass, pymethods};
 use rand::distributions::{WeightedError, WeightedIndex};
 use rand::prelude::*;
+use std::collections::HashMap;
 use crate::kernel::Kernel;
 
 #[pyclass]
 #[derive(Clone)]
-pub struct StandardWalker {
+pub struct LandCoverWalker {
+    pub max_step_sizes: HashMap<usize, usize>,
+    pub land_cover: Vec<Vec<usize>>,
     pub kernel: Kernel,
 }
 
 #[pymethods]
-impl StandardWalker {
+impl LandCoverWalker {
     #[new]
-    pub fn new(kernel: Kernel) -> Self {
+    pub fn new(max_step_sizes: HashMap<usize, usize>, land_cover: Vec<Vec<usize>>, kernel: Kernel) -> Self {
         Self {
+            max_step_sizes,
+            land_cover,
             kernel,
         }
     }
@@ -63,7 +68,7 @@ impl StandardWalker {
     }
 }
 
-impl Walker for StandardWalker {
+impl Walker for LandCoverWalker {
     fn generate_path(
         &self,
         dp: &DynamicProgramPool,
@@ -76,6 +81,7 @@ impl Walker for StandardWalker {
         };
 
         let mut path = Vec::new();
+        let time_limit = (self.land_cover.len() / 2) as isize;
         let (mut x, mut y) = (to_x, to_y);
         let mut rng = rand::thread_rng();
 
@@ -87,23 +93,22 @@ impl Walker for StandardWalker {
         for t in (1..time_steps).rev() {
             path.push((x as i64, y as i64).into());
 
-            let neighbors = [
-                (0, 0),
-                (-1, 0),
-                (0, -1),
-                (1, 0),
-                (0, 1),
-            ];
+            let current_land_cover =
+                self.land_cover[(time_limit + x) as usize][(time_limit + y) as usize];
+            let max_step_size = self.max_step_sizes[&current_land_cover] as isize;
+
             let mut prev_probs = Vec::new();
+            let mut movements = Vec::new();
 
-            for (mov_x, mov_y) in neighbors.iter() {
-                let (i, j) = (x + mov_x, y + mov_y);
+            for i in x - max_step_size..=x + max_step_size {
+                for j in y - max_step_size..=y + max_step_size {
+                    let p_b = dp.at_or(i, j, t - 1, 0.0);
+                    let p_a = dp.at_or(x, y, t, 0.0);
+                    let p_a_b = self.kernel.at(x - i, y - j);
 
-                let p_b = dp.at_or(i, j, t - 1, 0.0);
-                let p_a = dp.at_or(x, y, t, 0.0);
-                let p_a_b = self.kernel.at(i - x, j - y);
-
-                prev_probs.push((p_a_b * p_b) / p_a);
+                    prev_probs.push((p_a_b * p_b) / p_a);
+                    movements.push((i - x, j - y));
+                }
             }
 
             let direction = match WeightedIndex::new(prev_probs) {
@@ -111,15 +116,10 @@ impl Walker for StandardWalker {
                 Err(WeightedError::AllWeightsZero) => return Err(WalkerError::InconsistentPath),
                 _ => return Err(WalkerError::RandomDistributionError),
             };
+            let (dx, dy) = movements[direction];
 
-            match direction {
-                0 => (),     // Stay
-                1 => x -= 1, // West
-                2 => y -= 1, // North
-                3 => x += 1, // East
-                4 => y += 1, // South
-                _ => unreachable!("Other directions should not be chosen from the distribution"),
-            }
+            x += dx;
+            y += dy;
         }
 
         path.reverse();
@@ -130,9 +130,9 @@ impl Walker for StandardWalker {
 
     fn name(&self, short: bool) -> String {
         if short {
-            String::from("swg")
+            String::from("lcw")
         } else {
-            String::from("Standard Walker")
+            String::from("Land Cover Walker")
         }
     }
 }
