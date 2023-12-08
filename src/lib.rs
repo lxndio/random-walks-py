@@ -193,7 +193,6 @@ fn add_module_walker(py: Python<'_>, parent: &PyModule) -> PyResult<()> {
     m.add_class::<walker::standard::StandardWalker>()?;
     m.add_class::<walker::correlated::CorrelatedWalker>()?;
     m.add_class::<walker::multi_step::MultiStepWalker>()?;
-    m.add_class::<walker::bayes::BayesWalker>()?;
     m.add_class::<walker::land_cover::LandCoverWalker>()?;
     m.add_class::<walker::levy::LevyWalker>()?;
 
